@@ -60,9 +60,6 @@ export default function Header() {
               <a className="btn btn--ghost" href="/daftar" onClick={() => setOpen(false)}>
                 Daftar
               </a>
-              <a className="btn btn--primary" href="/lapor" onClick={() => setOpen(false)}>
-                Buat Laporan
-              </a>
             </div>
           </nav>
         </div>
