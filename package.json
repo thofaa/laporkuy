@@ -1,0 +1,16 @@
+{
+  "name": "laporkuy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/server/index.js",
+    "start": "NODE_ENV=production bun src/server/index.js"
+  },
+  "dependencies": {
+    "@elysiajs/swagger": "^1.3.1",
+    "elysia": "^1.4.30",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}
