@@ -719,6 +719,267 @@ a {
   }
 }
 
+/* Auth — split screen retro */
+.auth {
+  display: flex;
+  min-height: 100vh;
+}
+
+.auth__visual {
+  position: relative;
+  display: flex;
+  flex: 1 1 50%;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1.5rem;
+  background: rgba(107, 107, 107, 0.1);
+  border-right: 1.2px solid #1e1e1e;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.auth__shade {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-position: center;
+  background-size: 1440px auto;
+  pointer-events: none;
+}
+
+.auth__logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transform: translate(-50%, -50%);
+  font-size: 3rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.auth__logo span {
+  display: inline-block;
+  white-space: pre;
+}
+
+.auth__caret {
+  width: 0.55em;
+  height: 1.05em;
+  background: #1e1e1e;
+  animation: auth-caret 1s steps(1) infinite;
+}
+
+@keyframes auth-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+.auth__cards {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+}
+
+.auth__slogan {
+  padding: 0.5rem 0.8rem;
+  background: #c4c4c4;
+  border: 1.2px solid #1e1e1e;
+  font-size: 1rem;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.auth__slogan:active {
+  cursor: grabbing;
+}
+
+.auth__slogan:focus-visible {
+  outline: 3px solid #1e1e1e;
+  outline-offset: 2px;
+}
+
+.auth__panel {
+  display: flex;
+  flex: 1 1 50%;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  background: #ffffff;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.auth__form-wrap {
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth__title {
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.auth__sub {
+  margin-top: 0.35rem;
+  color: #6b6b6b;
+  font-size: 0.85rem;
+}
+
+.auth__form {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 1.5rem;
+}
+
+.auth__label {
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.auth__input {
+  padding: 0.65rem 0.8rem;
+  border: 1.2px solid #1e1e1e;
+  border-radius: 0;
+  background: #ffffff;
+  color: #1e1e1e;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.auth__input:focus {
+  outline: 2px solid #1e1e1e;
+  outline-offset: 1px;
+}
+
+.auth__row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.auth__link {
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+.auth__link:hover {
+  background: #1e1e1e;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.auth__error {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1.2px solid #1e1e1e;
+  font-size: 0.8rem;
+}
+
+.auth__submit {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.auth__divider {
+  position: relative;
+  margin: 1.25rem 0;
+  font-size: 0.75rem;
+  color: #6b6b6b;
+  text-align: center;
+}
+
+.auth__divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 1.2px solid #c4c4c4;
+}
+
+.auth__divider span {
+  position: relative;
+  padding: 0 0.75rem;
+  background: #ffffff;
+}
+
+.auth__google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: 1.2px solid #1e1e1e;
+  border-radius: 0;
+  background: #ffffff;
+  color: #1e1e1e;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth__google:hover {
+  background: #1e1e1e;
+  color: #ffffff;
+}
+
+.auth__google-icon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.2px solid currentColor;
+  font-size: 0.8rem;
+}
+
+.auth__alt {
+  margin-top: 1.5rem;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.auth__alt a {
+  text-decoration: underline;
+}
+
+.auth__alt a:hover {
+  background: #1e1e1e;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .auth {
+    flex-direction: column;
+  }
+
+  .auth__visual {
+    min-height: 360px;
+    border-right: 0;
+    border-bottom: 1.2px solid #1e1e1e;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth__caret {
+    animation: none;
+  }
+}
+
 /* Footer */
 .footer {
   background: #1e1e1e;
@@ -870,4 +1131,221 @@ a {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Report page */
+.report-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  padding: 2.5rem 0 4rem;
+}
+
+.report-sidebar {
+  flex: 0 0 300px;
+  min-width: 0;
+}
+
+.report-side__title {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e1e1e;
+}
+
+.report-side__list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.report-side__item {
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 1.2px solid #1e1e1e;
+  border-radius: 0;
+  background: #ffffff;
+  color: #1e1e1e;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.report-side__item:hover {
+  background: #e6e6e6;
+}
+
+.report-side__item--active {
+  background: #1e1e1e;
+  color: #ffffff;
+}
+
+.report-side__note {
+  margin-top: 1.25rem;
+  font-size: 0.78rem;
+  color: #6b6b6b;
+}
+
+.report-canvas {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.report-canvas__head {
+  max-width: 720px;
+}
+
+.report-canvas__eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b6b6b;
+}
+
+.report-canvas__title {
+  margin-top: 0.35rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1e1e1e;
+}
+
+.report-canvas__sub {
+  margin-top: 0.5rem;
+  font-size: 0.88rem;
+  color: #6b6b6b;
+}
+
+.report-category {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  color: #1e1e1e;
+}
+
+.report-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.75rem;
+  max-width: 720px;
+}
+
+.report-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.report-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1e1e1e;
+}
+
+.report-input {
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 1.2px solid #1e1e1e;
+  border-radius: 0;
+  background: #ffffff;
+  color: #1e1e1e;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.report-input:focus {
+  outline: 2px solid #1e1e1e;
+  outline-offset: 1px;
+}
+
+textarea.report-input {
+  resize: vertical;
+}
+
+.report-photo {
+  position: relative;
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  border: 1.2px solid #1e1e1e;
+  background: #c4c4c4;
+}
+
+.report-photo__img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+  border-bottom: 1.2px solid #1e1e1e;
+}
+
+.report-photo__hint {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  color: #1e1e1e;
+}
+
+.report-submit {
+  justify-self: start;
+  margin-top: 0.5rem;
+}
+
+.report-success {
+  margin-top: 1.75rem;
+  max-width: 720px;
+  padding: 2rem;
+  border: 1.2px solid #1e1e1e;
+}
+
+.report-success__title {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1e1e1e;
+}
+
+.report-success__text {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #6b6b6b;
+}
+
+@media (max-width: 900px) {
+  .report-layout {
+    flex-direction: column;
+  }
+
+  .report-sidebar {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
+/* Header account icon */
+.header__account {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1.2px solid #1e1e1e;
+  border-radius: 0;
+  background: #ffffff;
+  color: #1e1e1e;
+}
+
+.header__account:hover {
+  background: #1e1e1e;
+  color: #ffffff;
+}
+
+.header__account:focus-visible {
+  outline: 3px solid #1e1e1e;
+  outline-offset: 2px;
 }

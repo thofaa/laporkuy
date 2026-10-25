@@ -1,18 +1,32 @@
 import Header from "./components/Header.jsx";
 import Footer from "./components/Footer.jsx";
 import Landing from "./pages/Landing.jsx";
+import Auth from "./pages/Auth.jsx";
+import Report from "./pages/Report.jsx";
 
 export default function App() {
+  const path = window.location.pathname;
+  const isAuth = path === "/masuk" || path === "/daftar";
+  const isReport = path === "/lapor";
+
   return (
     <>
-      <a className="skip-link" href="#main">
-        Lewati ke konten
-      </a>
-      <Header />
+      {!isAuth && (
+        <a className="skip-link" href="#main">
+          Lewati ke konten
+        </a>
+      )}
+      {!isAuth && <Header />}
       <main id="main">
-        <Landing />
+        {isAuth ? (
+          <Auth mode={path === "/masuk" ? "login" : "register"} />
+        ) : isReport ? (
+          <Report />
+        ) : (
+          <Landing />
+        )}
       </main>
-      <Footer />
+      {!isAuth && <Footer />}
     </>
   );
 }
