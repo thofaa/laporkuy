@@ -4,7 +4,6 @@ import {
   MessageCircleWarning,
   ClipboardList,
 } from "lucide-react";
-import reportImage from "../assets/report-placeholder.svg";
 
 const STATUS_LABEL = {
   submitted: "Diproses",
@@ -52,8 +51,11 @@ function LogView({ userId }) {
 export default function Report() {
   const path = window.location.pathname;
   const user = JSON.parse(localStorage.getItem("laporkuy_user") ?? "null");
+  // ponytail: sessionStorage biar collapse kebetan saat pindah /lapor <-> /log
   const [sidebarState, setSidebarState] = useState(
-    () => (window.innerWidth <= 900 ? "collapse" : "expand"),
+    () =>
+      sessionStorage.getItem("laporkuy_sidebar") ??
+      (window.innerWidth <= 900 ? "collapse" : "expand"),
   );
   const [activeMenu, setActiveMenu] = useState(path === "/log" ? "log" : "buat");
   const [title, setTitle] = useState("");
@@ -61,6 +63,9 @@ export default function Report() {
   const [description, setDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
 
   function selectMenu(menu) {
     setActiveMenu(menu);
@@ -77,6 +82,7 @@ export default function Report() {
       body: JSON.stringify({
         user_id: user?.id,
         description_raw: `${title}\nLokasi: ${location}\n\n${description}`,
+        image_url: imageUrl || null,
       }),
     });
     if (!res.ok) {
@@ -86,8 +92,30 @@ export default function Report() {
     setSubmitted(true);
   }
 
+  async function handlePhotoChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setPhotoError("");
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/upload-image", { method: "POST", body: form });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "upload_failed");
+      setImageUrl(json.image_url);
+    } catch {
+      setImageUrl("");
+      setPhotoError("Gagal mengunggah foto. Coba lagi.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function handleToggleSidebar() {
-    setSidebarState((state) => (state === "collapse" ? "expand" : "collapse"));
+    const next = sidebarState === "collapse" ? "expand" : "collapse";
+    setSidebarState(next);
+    sessionStorage.setItem("laporkuy_sidebar", next);
   }
 
   return (
@@ -212,20 +240,36 @@ export default function Report() {
             </div>
 
             <div className="report-field">
-              <span className="report-label" id="report-photo-label">
+              <label className="report-label" htmlFor="report-photo">
                 Foto (opsional)
-              </span>
-              <div className="report-photo">
-                <img className="report-photo__img" src={reportImage} alt="" />
-                <span className="report-photo__hint">Upload foto laporan</span>
-              </div>
+              </label>
+              <input
+                id="report-photo"
+                className="report-input"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handlePhotoChange}
+              />
+              {uploading && <p className="report-label">Mengunggah foto...</p>}
+              {photoError && <p className="report-error">{photoError}</p>}
+              {imageUrl && (
+                <img
+                  className="report-photo__preview"
+                  src={imageUrl}
+                  alt="Pratinjau foto laporan"
+                />
+              )}
             </div>
 
             {submitError && (
               <p className="report-error">Gagal mengirim laporan. Coba lagi.</p>
             )}
 
-            <button className="btn btn--primary report-submit" type="submit">
+            <button
+              className="btn btn--primary report-submit"
+              type="submit"
+              disabled={uploading}
+            >
               Kirim Laporan
             </button>
           </form>

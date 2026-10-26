@@ -17,6 +17,18 @@ services:
     ports:
       - "6379:6379"
 
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: laporkuy
+      MINIO_ROOT_PASSWORD: laporkuy123
+    ports:
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
   app:
     image: oven/bun:1
     restart: unless-stopped
@@ -33,9 +45,14 @@ services:
       PORT: 3000
       DATABASE_URL: postgres://laporkuy:laporkuy@db:5432/laporkuy
       REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: laporkuy
+      MINIO_SECRET_KEY: laporkuy123
     depends_on:
       - db
       - redis
+      - minio
 
   nginx:
     image: nginx:1.27-alpine
@@ -51,3 +68,4 @@ services:
 
 volumes:
   pgdata:
+  miniodata:

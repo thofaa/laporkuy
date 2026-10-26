@@ -2,9 +2,42 @@ import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import postgres from "postgres";
+import { Client as MinioClient } from "minio";
 import index from "../../index.html";
 
 const sql = postgres(process.env.DATABASE_URL ?? "postgres://laporkuy:laporkuy@localhost:5432/laporkuy");
+
+const MINIO_BUCKET = "laporkuy";
+const minio = new MinioClient({
+  endPoint: Bun.env.MINIO_ENDPOINT ?? "localhost",
+  port: Number(Bun.env.MINIO_PORT ?? 9000),
+  useSSL: false,
+  accessKey: Bun.env.MINIO_ACCESS_KEY ?? "laporkuy",
+  secretKey: Bun.env.MINIO_SECRET_KEY ?? "laporkuy123",
+});
+
+async function ensureBucket() {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      if (!(await minio.bucketExists(MINIO_BUCKET))) {
+        await minio.makeBucket(MINIO_BUCKET);
+      }
+      await minio.setBucketPolicy(MINIO_BUCKET, JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Principal: { AWS: ["*"] },
+          Action: ["s3:GetObject"],
+          Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`],
+        }],
+      }));
+      return;
+    } catch (error) {
+      if (attempt === 9) throw error;
+      await Bun.sleep(1000);
+    }
+  }
+}
 
 const hashPassword = (pw) => {
   const salt = randomBytes(16).toString("hex");
@@ -47,8 +80,8 @@ const api = new Elysia({ prefix: "/api" })
     try {
       const ticket = `LPK-${randomBytes(4).toString("hex").toUpperCase()}`;
       const [row] = await sql`
-        INSERT INTO reports (ticket_number, user_id, description_raw)
-        VALUES (${ticket}, ${body?.user_id ?? null}, ${descriptionRaw})
+        INSERT INTO reports (ticket_number, user_id, description_raw, image_url)
+        VALUES (${ticket}, ${body?.user_id ?? null}, ${descriptionRaw}, ${body?.image_url ?? null})
         RETURNING id, ticket_number, status, submitted_at`;
       set.status = 201;
       return { report: row };
@@ -73,6 +106,41 @@ const api = new Elysia({ prefix: "/api" })
       WHERE user_id = ${userId}
       ORDER BY submitted_at DESC`;
     return { data: rows };
+  }, { tags: ["Reports"] })
+  .post("/upload-image", async ({ set, request }) => {
+    const form = await request.formData().catch(() => null);
+    const file = form?.get("file");
+    if (!(file instanceof File)) {
+      set.status = 400;
+      return { error: "file_required" };
+    }
+    const EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+    const ext = EXTENSIONS[file.type];
+    if (!ext) {
+      set.status = 400;
+      return { error: "invalid_type" };
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      set.status = 400;
+      return { error: "file_too_large" };
+    }
+    try {
+      await ensureBucket();
+      const key = `${randomBytes(8).toString("hex")}.${ext}`;
+      await minio.putObject(
+        MINIO_BUCKET,
+        key,
+        Buffer.from(await file.arrayBuffer()),
+        file.size,
+        { "Content-Type": file.type },
+      );
+      set.status = 201;
+      return { image_url: `/uploads/${MINIO_BUCKET}/${key}` };
+    } catch (error) {
+      console.error("upload failed", error);
+      set.status = 500;
+      return { error: "upload_failed" };
+    }
   }, { tags: ["Reports"] })
   .post("/auth/register", async ({ set, request }) => {
     const body = await request.json().catch(() => null);

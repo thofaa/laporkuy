@@ -59,6 +59,7 @@ CREATE TABLE public.reports (
   contact_phone varchar(32),
   description_raw text NOT NULL,
   description_redacted text,
+  image_url text,
   category_id uuid REFERENCES public.kategori(id),
   dinas_id uuid REFERENCES public.dinas(id),
   urgency urgency_level,

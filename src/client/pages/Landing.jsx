@@ -2,6 +2,14 @@ import LiveChatSection from "../components/LiveChatSection.jsx";
 import reportImage from "../assets/report-placeholder.svg";
 import shadeUrl from "../assets/shade.png";
 
+// ponytail: gate di klik-CTA saja, bukan route guard global
+function handleLoginGate(event) {
+  if (!localStorage.getItem("laporkuy_user")) {
+    event.preventDefault();
+    window.location.href = "/masuk";
+  }
+}
+
 const REPORTS = [
   {
     category: "Infrastruktur Jalan",
@@ -50,7 +58,11 @@ export default function Landing() {
             layanan publik dan pantau penanganannya secara transparan.
           </p>
           <div className="hero__actions">
-            <a className="btn btn--primary btn--lg" href="/lapor">
+            <a
+              className="btn btn--primary btn--lg"
+              href="/lapor"
+              onClick={handleLoginGate}
+            >
               Buat Laporan
             </a>
             <a className="btn btn--outline btn--lg" href="/lacak">
