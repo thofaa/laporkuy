@@ -28,6 +28,17 @@ body {
   background: var(--white);
 }
 
+/* sticky footer: footer tetap di bawah saat konten pendek */
+#root {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+#main {
+  flex: 1;
+}
+
 h1,
 h2,
 h3,
@@ -1137,13 +1148,53 @@ a {
 .report-layout {
   display: flex;
   align-items: flex-start;
-  gap: 2rem;
+  gap: 1rem;
   padding: 2.5rem 0 4rem;
 }
 
 .report-sidebar {
   flex: 0 0 300px;
   min-width: 0;
+  padding: 0 2rem;
+}
+
+.report-layout--collapsed .report-sidebar {
+  flex: 0 0 7rem;
+  width: 7rem;
+}
+
+.report-side__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  border: 1.2px solid #1e1e1e;
+  background: #ffffff;
+  padding: 0.65rem 0.8rem;
+  cursor: pointer;
+}
+
+.report-side__icon-btn:hover {
+  background: #e6e6e6;
+}
+
+.report-side__icon-btn svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.report-side__icon-btn + .report-side__title {
+  margin-left: 0.5rem;
+}
+
+.report-side__item--active .report-side__icon-btn {
+  background: #1e1e1e;
+  color: #ffffff;
+}
+
+.report-side__head {
+  padding-bottom: 1rem;
+  border-bottom: 1.2px solid #1e1e1e;
 }
 
 .report-side__title {
@@ -1159,49 +1210,16 @@ a {
   margin-top: 0.75rem;
 }
 
-.report-side__item {
-  width: 100%;
-  padding: 0.65rem 0.8rem;
-  border: 1.2px solid #1e1e1e;
-  border-radius: 0;
-  background: #ffffff;
-  color: #1e1e1e;
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.88rem;
-  text-align: left;
-}
-
-.report-side__item:hover {
-  background: #e6e6e6;
-}
-
-.report-side__item--active {
-  background: #1e1e1e;
-  color: #ffffff;
-}
-
-.report-side__note {
-  margin-top: 1.25rem;
-  font-size: 0.78rem;
-  color: #6b6b6b;
-}
-
 .report-canvas {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 100vh;
+  border-left: 1.2px solid #1e1e1e;
+  padding-left: 2rem;
 }
 
 .report-canvas__head {
   max-width: 720px;
-}
-
-.report-canvas__eyebrow {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #6b6b6b;
 }
 
 .report-canvas__title {
@@ -1218,10 +1236,42 @@ a {
   color: #6b6b6b;
 }
 
-.report-category {
-  font-family: "IBM Plex Mono", monospace;
+.report-error {
   font-size: 0.8rem;
+  color: #d22d23;
+}
+
+.log-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  max-width: 900px;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.8rem;
+  border: 1.2px solid #1e1e1e;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
   color: #1e1e1e;
+}
+
+.log-item__ticket {
+  font-weight: 600;
+}
+
+.log-item__status {
+  margin-left: auto;
+}
+
+.log-empty {
+  margin-top: 1.75rem;
+  max-width: 720px;
+  font-size: 0.9rem;
+  color: #6b6b6b;
 }
 
 .report-form {
@@ -1348,4 +1398,12 @@ textarea.report-input {
 .header__account:focus-visible {
   outline: 3px solid #1e1e1e;
   outline-offset: 2px;
+}
+
+/* Header lapor page — container sendiri */
+.header-lapor {
+  width: 100%;
+  /*! max-width: 1120px; */
+  margin: 0 auto;
+  padding: 0 60px;
 }

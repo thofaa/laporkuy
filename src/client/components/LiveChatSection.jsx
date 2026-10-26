@@ -33,8 +33,7 @@ export default function LiveChatSection() {
         <div className="section__head">
           <h2 className="section__title">Tanya langsung</h2>
           <p className="section__sub">
-            Distribusi percakapan saat ini, ditambah laporan warga yang bisa
-            digeser di dalam bingkai.
+            Lihat apa yang banyak dibicarakan warga saat ini ...
           </p>
         </div>
 

@@ -36,6 +36,44 @@ const api = new Elysia({ prefix: "/api" })
       { name: "Escalated", value: 40 },
     ],
   }))
+  // ponytail: user_id dari body/query (belum ada middleware auth), ganti saat auth middleware ada
+  .post("/submit-laporan", async ({ set, request }) => {
+    const body = await request.json().catch(() => null);
+    const descriptionRaw = String(body?.description_raw ?? "").trim();
+    if (!descriptionRaw) {
+      set.status = 400;
+      return { error: "description_required" };
+    }
+    try {
+      const ticket = `LPK-${randomBytes(4).toString("hex").toUpperCase()}`;
+      const [row] = await sql`
+        INSERT INTO reports (ticket_number, user_id, description_raw)
+        VALUES (${ticket}, ${body?.user_id ?? null}, ${descriptionRaw})
+        RETURNING id, ticket_number, status, submitted_at`;
+      set.status = 201;
+      return { report: row };
+    } catch (e) {
+      if (e.code === "23503" || e.code === "22P02") {
+        set.status = 400;
+        return { error: "user_not_found" };
+      }
+      set.status = 500;
+      return { error: "submit_failed" };
+    }
+  }, { tags: ["Reports"] })
+  .get("/log", async ({ set, request }) => {
+    const userId = new URL(request.url).searchParams.get("user_id");
+    if (!userId) {
+      set.status = 400;
+      return { error: "user_id_required" };
+    }
+    const rows = await sql`
+      SELECT id, ticket_number, description_raw, status, urgency, submitted_at
+      FROM reports
+      WHERE user_id = ${userId}
+      ORDER BY submitted_at DESC`;
+    return { data: rows };
+  }, { tags: ["Reports"] })
   .post("/auth/register", async ({ set, request }) => {
     const body = await request.json().catch(() => null);
     const email = String(body?.email ?? "").toLowerCase().trim();
