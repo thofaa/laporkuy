@@ -2,13 +2,7 @@ import LiveChatSection from "../components/LiveChatSection.jsx";
 import reportImage from "../assets/report-placeholder.svg";
 import shadeUrl from "../assets/shade.png";
 
-// ponytail: gate di klik-CTA saja, bukan route guard global
-function handleLoginGate(event) {
-  if (!localStorage.getItem("laporkuy_user")) {
-    event.preventDefault();
-    window.location.href = "/masuk";
-  }
-}
+// ponytail: guard pindah ke server (/api/submit-laporan 401), /lapor bebas dilihat
 
 const REPORTS = [
   {
@@ -61,7 +55,6 @@ export default function Landing() {
             <a
               className="btn btn--primary btn--lg"
               href="/lapor"
-              onClick={handleLoginGate}
             >
               Buat Laporan
             </a>

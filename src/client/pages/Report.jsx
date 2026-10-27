@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import {
+  ArrowLeft,
   Menu,
   MessageCircleWarning,
   ClipboardList,
 } from "lucide-react";
+import placeholderUrl from "../assets/report-placeholder.svg";
 
 const STATUS_LABEL = {
   submitted: "Diproses",
@@ -16,33 +18,122 @@ const STATUS_LABEL = {
   merged: "Digabung",
 };
 
-function LogView({ userId }) {
-  const [logs, setLogs] = useState(null);
+function authHeaders() {
+  const token = localStorage.getItem("laporkuy_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
-  useEffect(() => {
-    if (!userId) return;
-    fetch(`/api/log?user_id=${encodeURIComponent(userId)}`)
-      .then((res) => res.json())
-      .then((json) => setLogs(json.data ?? []))
-      .catch(() => setLogs([]));
-  }, [userId]);
-
-  if (!userId) {
-    return <p className="log-empty">Masuk untuk melihat log laporan Anda.</p>;
+function handle401(res) {
+  if (res.status === 401) {
+    localStorage.removeItem("laporkuy_token");
+    localStorage.removeItem("laporkuy_user");
+    window.location.href = "/masuk";
+    return true;
   }
+  return false;
+}
+
+// ponytail: description_raw = "judul\nLokasi: lokasi\n\ndeskripsi" (format client), parse di sini
+function parseReport(raw = "") {
+  const [title, ...rest] = String(raw).split("\n");
+  const lokIdx = rest.findIndex((line) => line.startsWith("Lokasi: "));
+  const location = lokIdx === -1 ? "" : rest[lokIdx].slice("Lokasi: ".length).trim();
+  const description = (
+    lokIdx === -1 ? rest : rest.slice(lokIdx + 1)
+  ).join("\n").replace(/^\s+/, "");
+  return { title, location, description };
+}
+
+function LogItem({ item, expanded, onToggle, onOpen }) {
+  const { title, location } = parseReport(item.description_raw);
+  return (
+    <li className="log-item">
+      <div
+        className="log-item__row"
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        onClick={() => onToggle(item.id)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onToggle(item.id);
+          }
+        }}
+      >
+        <span className="log-item__ticket">{item.ticket_number}</span>
+        <span className="log-item__status">
+          {STATUS_LABEL[item.status] ?? item.status}
+        </span>
+        <time>{new Date(item.submitted_at).toLocaleDateString("id-ID")}</time>
+        <button
+          type="button"
+          className="log-item__open"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen(item.id);
+          }}
+        >
+          Buka
+        </button>
+      </div>
+      {expanded && (
+        <div className="log-item__preview">
+          <div className="log-preview__photo">
+            <img
+              src={item.image_url || placeholderUrl}
+              alt={item.image_url ? `Foto laporan ${item.ticket_number}` : "Laporan tanpa foto"}
+            />
+          </div>
+          <div className="log-preview__meta">
+            <h4 className="log-preview__title">{title}</h4>
+            <p className="log-preview__location">{location || "Lokasi tidak tercantum"}</p>
+          </div>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function ReportDetail({ item }) {
+  const { location, description } = parseReport(item.description_raw);
+  return (
+    <article className="report-detail">
+      <img
+        className="report-detail__photo"
+        src={item.image_url || placeholderUrl}
+        alt={item.image_url ? `Foto laporan ${item.ticket_number}` : "Laporan tanpa foto"}
+      />
+      <p className="report-detail__location">{location || "Lokasi tidak tercantum"}</p>
+      <p className="report-detail__desc">{description || "—"}</p>
+    </article>
+  );
+}
+
+function LogView({ logs, detailId, setDetailId }) {
+  const [expandedId, setExpandedId] = useState(null);
+
   if (logs === null) {
     return <p className="log-empty">Memuat log laporan...</p>;
   }
+
+  if (detailId) {
+    const item = logs.find((l) => l.id === detailId);
+    if (item) {
+      return <ReportDetail item={item} />;
+    }
+  }
+
   return (
     <ul className="log-list">
       {logs.map((item) => (
-        <li key={item.id} className="log-item">
-          <span className="log-item__ticket">{item.ticket_number}</span>
-          <span className="log-item__status">
-            {STATUS_LABEL[item.status] ?? item.status}
-          </span>
-          <time>{new Date(item.submitted_at).toLocaleDateString("id-ID")}</time>
-        </li>
+        <LogItem
+          key={item.id}
+          item={item}
+          expanded={expandedId === item.id}
+          onToggle={(id) => setExpandedId((cur) => (cur === id ? null : id))}
+          onOpen={setDetailId}
+        />
       ))}
     </ul>
   );
@@ -50,7 +141,6 @@ function LogView({ userId }) {
 
 export default function Report() {
   const path = window.location.pathname;
-  const user = JSON.parse(localStorage.getItem("laporkuy_user") ?? "null");
   // ponytail: sessionStorage biar collapse kebetan saat pindah /lapor <-> /log
   const [sidebarState, setSidebarState] = useState(
     () =>
@@ -66,6 +156,16 @@ export default function Report() {
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState("");
+  const [logs, setLogs] = useState(null);
+  const [detailId, setDetailId] = useState(null);
+
+  useEffect(() => {
+    if (activeMenu !== "log") return;
+    fetch("/api/log", { headers: authHeaders() })
+      .then((res) => (handle401(res) ? [] : res.json()))
+      .then((json) => setLogs(json?.data ?? []))
+      .catch(() => setLogs([]));
+  }, [activeMenu]);
 
   function selectMenu(menu) {
     setActiveMenu(menu);
@@ -78,14 +178,13 @@ export default function Report() {
     setSubmitError(false);
     const res = await fetch("/api/submit-laporan", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
-        user_id: user?.id,
         description_raw: `${title}\nLokasi: ${location}\n\n${description}`,
         image_url: imageUrl || null,
       }),
     });
-    if (!res.ok) {
+    if (handle401(res) || !res.ok) {
       setSubmitError(true);
       return;
     }
@@ -165,14 +264,37 @@ export default function Report() {
 
       <section className="report-canvas" aria-labelledby="report-canvas-title">
         <header className="report-canvas__head">
+          {(activeMenu === "log" && detailId) && (
+            <button
+              type="button"
+              className="btn btn--outline report-detail__back"
+              onClick={() => setDetailId(null)}
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              Kembali
+            </button>
+          )}
           <h1 className="report-canvas__title" id="report-canvas-title">
-            {activeMenu === "log" ? "Log Laporan" : "Buat Laporan"}
-          </h1>
-          <p className="report-canvas__sub">
             {activeMenu === "log"
-              ? "Belum ada laporan yang tercatat. Seluruh laporan yang Anda buat akan muncul di sini!"
-              : "Satu form, tanpa memilih dinas, status jelas. Laporkan masalah layanan publik dan pantau penanganannya secara transparan."}
-          </p>
+              ? detailId
+                ? parseReport(
+                    (logs ?? []).find((l) => l.id === detailId)?.description_raw ?? "",
+                  ).title
+                : "Log Laporan"
+              : "Buat Laporan"}
+          </h1>
+          {activeMenu === "log" && logs !== null && logs.length === 0 && (
+            <p className="report-canvas__sub">
+              Belum ada laporan yang tercatat. Seluruh laporan yang Anda buat akan
+              muncul di sini!
+            </p>
+          )}
+          {activeMenu === "buat" && (
+            <p className="report-canvas__sub">
+              Satu form, tanpa memilih dinas, status jelas. Laporkan masalah
+              layanan publik dan pantau penanganannya secara transparan.
+            </p>
+          )}
         </header>
 
         {submitted ? (
@@ -191,7 +313,7 @@ export default function Report() {
             </button>
           </div>
         ) : activeMenu === "log" ? (
-          <LogView userId={user?.id} />
+          <LogView logs={logs} detailId={detailId} setDetailId={setDetailId} />
         ) : (
           <form className="report-form" onSubmit={handleSubmit}>
             <div className="report-field">

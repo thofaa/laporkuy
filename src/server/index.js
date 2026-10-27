@@ -22,15 +22,20 @@ async function ensureBucket() {
       if (!(await minio.bucketExists(MINIO_BUCKET))) {
         await minio.makeBucket(MINIO_BUCKET);
       }
-      await minio.setBucketPolicy(MINIO_BUCKET, JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [{
-          Effect: "Allow",
-          Principal: { AWS: ["*"] },
-          Action: ["s3:GetObject"],
-          Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`],
-        }],
-      }));
+      // ponytail: policy read-anonimy tidak fatal — dukungan SeaweedFS parsial
+      try {
+        await minio.setBucketPolicy(MINIO_BUCKET, JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [{
+            Effect: "Allow",
+            Principal: { AWS: ["*"] },
+            Action: ["s3:GetObject"],
+            Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`],
+          }],
+        }));
+      } catch (e) {
+        console.error("bucket policy skipped", e.message);
+      }
       return;
     } catch (error) {
       if (attempt === 9) throw error;
@@ -53,6 +58,18 @@ const verifyPassword = (pw, stored) => {
   return derived.length === keyBuf.length && timingSafeEqual(derived, keyBuf);
 };
 
+// ponytail: token di tabel sessions tanpa expiry; tambah expires_at saat dibutuhkan
+const getUser = async (request) => {
+  const auth = request.headers.get("authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return null;
+  const [row] = await sql`
+    SELECT u.id, u.email, u.role FROM sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.token = ${token}`;
+  return row ?? null;
+};
+
 const api = new Elysia({ prefix: "/api" })
   .use(swagger({ path: "/docs" }))
   .get("/health", () => ({
@@ -71,6 +88,12 @@ const api = new Elysia({ prefix: "/api" })
   }))
   // ponytail: user_id dari body/query (belum ada middleware auth), ganti saat auth middleware ada
   .post("/submit-laporan", async ({ set, request }) => {
+    // ponytail: auth dari session, bukan body.user_id
+    const user = await getUser(request);
+    if (!user) {
+      set.status = 401;
+      return { error: "unauthorized" };
+    }
     const body = await request.json().catch(() => null);
     const descriptionRaw = String(body?.description_raw ?? "").trim();
     if (!descriptionRaw) {
@@ -81,7 +104,7 @@ const api = new Elysia({ prefix: "/api" })
       const ticket = `LPK-${randomBytes(4).toString("hex").toUpperCase()}`;
       const [row] = await sql`
         INSERT INTO reports (ticket_number, user_id, description_raw, image_url)
-        VALUES (${ticket}, ${body?.user_id ?? null}, ${descriptionRaw}, ${body?.image_url ?? null})
+        VALUES (${ticket}, ${user.id}, ${descriptionRaw}, ${body?.image_url ?? null})
         RETURNING id, ticket_number, status, submitted_at`;
       set.status = 201;
       return { report: row };
@@ -95,15 +118,16 @@ const api = new Elysia({ prefix: "/api" })
     }
   }, { tags: ["Reports"] })
   .get("/log", async ({ set, request }) => {
-    const userId = new URL(request.url).searchParams.get("user_id");
-    if (!userId) {
-      set.status = 400;
-      return { error: "user_id_required" };
+    // ponytail: user dari session; query param user_id tidak dipakai lagi (IDOR)
+    const user = await getUser(request);
+    if (!user) {
+      set.status = 401;
+      return { error: "unauthorized" };
     }
     const rows = await sql`
-      SELECT id, ticket_number, description_raw, status, urgency, submitted_at
+      SELECT id, ticket_number, description_raw, image_url, status, urgency, submitted_at
       FROM reports
-      WHERE user_id = ${userId}
+      WHERE user_id = ${user.id}
       ORDER BY submitted_at DESC`;
     return { data: rows };
   }, { tags: ["Reports"] })
@@ -168,7 +192,14 @@ const api = new Elysia({ prefix: "/api" })
     if (!user || !verifyPassword(password, user.password_hash)) { set.status = 401; return { error: "invalid_credentials" }; }
     if (!user.is_active) { set.status = 403; return { error: "inactive" }; }
     const token = randomBytes(32).toString("hex");
+    await sql`INSERT INTO sessions (token, user_id) VALUES (${token}, ${user.id})`;
     return { token, user: { id: user.id, email: user.email, role: user.role } };
+  }, { tags: ["Auth"] })
+  .post("/auth/logout", async ({ set, request }) => {
+    const auth = request.headers.get("authorization") ?? "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+    if (token) await sql`DELETE FROM sessions WHERE token = ${token}`;
+    return { ok: true };
   }, { tags: ["Auth"] });
 
 const port = Number(Bun.env.PORT ?? 3000);

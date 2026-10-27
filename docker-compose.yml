@@ -18,14 +18,13 @@ services:
       - "6379:6379"
 
   minio:
-    image: minio/minio:latest
+    image: ghcr.io/chrislusf/seaweedfs:latest
     restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: laporkuy
-      MINIO_ROOT_PASSWORD: laporkuy123
+    # ponytail: service tetap bernama "minio" agar MINIO_ENDPOINT & nginx proxy tak berubah
+    command: server -s3 -s3.port=9000 -volume.max=10 -dir=/data
     ports:
-      - "9001:9001"
+      - "9000:9000"
+      - "8888:8888"
     volumes:
       - miniodata:/data
 
