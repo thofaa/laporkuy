@@ -6,6 +6,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import placeholderUrl from "../assets/report-placeholder.svg";
+import MapView from "../components/MapView.jsx";
 
 const STATUS_LABEL = {
   submitted: "Diproses",
@@ -152,7 +153,8 @@ export default function Report() {
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [point, setPoint] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState("");
@@ -175,20 +177,28 @@ export default function Report() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setSubmitError(false);
+    setSubmitError("");
+    if (!point) {
+      setSubmitError("Pilih titik lokasi di peta terlebih dahulu.");
+      return;
+    }
     const res = await fetch("/api/submit-laporan", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         description_raw: `${title}\nLokasi: ${location}\n\n${description}`,
         image_url: imageUrl || null,
+        lat: point.lat,
+        lng: point.lng,
+        address: point.label || null,
       }),
     });
     if (handle401(res) || !res.ok) {
-      setSubmitError(true);
+      setSubmitError("Gagal mengirim laporan. Coba lagi.");
       return;
     }
     setSubmitted(true);
+    setPoint(null);
   }
 
   async function handlePhotoChange(event) {
@@ -383,9 +393,15 @@ export default function Report() {
               )}
             </div>
 
-            {submitError && (
-              <p className="report-error">Gagal mengirim laporan. Coba lagi.</p>
-            )}
+            <div className="report-field">
+              <span className="report-label">Titik lokasi</span>
+              <MapView value={point} onChange={setPoint} />
+              {point?.label && (
+                <p className="report-map__address">{point.label}</p>
+              )}
+            </div>
+
+            {submitError && <p className="report-error">{submitError}</p>}
 
             <button
               className="btn btn--primary report-submit"
