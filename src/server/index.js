@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import postgres from "postgres";
@@ -70,6 +70,51 @@ const getUser = async (request) => {
   return row ?? null;
 };
 
+const ReportBody = t.Object({
+  description_raw: t.Optional(t.String({
+    description: "Teks laporan. Wajib diisi (tidak boleh kosong).",
+  })),
+  lat: t.Optional(t.Number({
+    description: "Lintang titik lokasi, -90 sampai 90. Wajib.",
+  })),
+  lng: t.Optional(t.Number({
+    description: "Bujur titik lokasi, -180 sampai 180. Wajib.",
+  })),
+  address: t.Optional(t.String({
+    description: "Alamat hasil geocoding (opsional, disimpan null jika kosong).",
+  })),
+  image_url: t.Optional(t.String({
+    description: "URL gambar dari POST /api/upload-image (opsional).",
+  })),
+}, { additionalProperties: true });
+
+async function proxyNominatim(endpoint, request, set) {
+  const base = String(process.env.NOMINATIM_URL ?? "").replace(/\/+$/, "");
+  if (!base) {
+    set.status = 503;
+    return { error: "nominatim_not_configured" };
+  }
+  const url = new URL(request.url);
+  try {
+    const upstream = await fetch(`${base}/${endpoint}${url.search}`, {
+      headers: {
+        accept: "application/json",
+        "user-agent": "laporkuy/0.1 (self-hosted)",
+      },
+    });
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: {
+        "content-type": upstream.headers.get("content-type") ?? "application/json",
+      },
+    });
+  } catch (error) {
+    console.error("nominatim proxy failed", error);
+    set.status = 502;
+    return { error: "nominatim_unavailable" };
+  }
+}
+
 const api = new Elysia({ prefix: "/api" })
   .use(swagger({ path: "/docs" }))
   .get("/health", () => ({
@@ -100,11 +145,22 @@ const api = new Elysia({ prefix: "/api" })
       set.status = 400;
       return { error: "description_required" };
     }
+    const { lat, lng } = body ?? {};
+    if (
+      !Number.isFinite(lat) || Math.abs(lat) > 90 ||
+      !Number.isFinite(lng) || Math.abs(lng) > 180
+    ) {
+      set.status = 400;
+      return { error: "location_required" };
+    }
+    const address = typeof body?.address === "string" && body.address.trim()
+      ? body.address.trim()
+      : null;
     try {
       const ticket = `LPK-${randomBytes(4).toString("hex").toUpperCase()}`;
       const [row] = await sql`
-        INSERT INTO reports (ticket_number, user_id, description_raw, image_url)
-        VALUES (${ticket}, ${user.id}, ${descriptionRaw}, ${body?.image_url ?? null})
+        INSERT INTO reports (ticket_number, user_id, description_raw, image_url, lat, lng, address)
+        VALUES (${ticket}, ${user.id}, ${descriptionRaw}, ${body?.image_url ?? null}, ${lat}, ${lng}, ${address})
         RETURNING id, ticket_number, status, submitted_at`;
       set.status = 201;
       return { report: row };
@@ -116,7 +172,37 @@ const api = new Elysia({ prefix: "/api" })
       set.status = 500;
       return { error: "submit_failed" };
     }
-  }, { tags: ["Reports"] })
+  }, {
+    tags: ["Reports"],
+    detail: {
+      summary: "Kirim laporan baru",
+      description: "Membuat laporan untuk user yang login (header `Authorization: Bearer <token>`). `description_raw`, `lat`, dan `lng` wajib. `lat`/`lng` harus berupa angka dalam rentang valid; jika tidak, respons `400 location_required`. Sukses: `201` dengan `{ report: { id, ticket_number, status, submitted_at } }`.",
+      requestBody: {
+        required: true,
+        content: { "application/json": { schema: ReportBody } },
+      },
+      responses: {
+        201: {
+          description: "Laporan dibuat.",
+          content: {
+            "application/json": {
+              example: {
+                report: {
+                  id: "uuid",
+                  ticket_number: "LPK-1A2B3C4D",
+                  status: "submitted",
+                  submitted_at: "2026-10-29T10:00:00.000Z",
+                },
+              },
+            },
+          },
+        },
+        400: { description: "`description_required`, `location_required`, atau `user_not_found`." },
+        401: { description: "`unauthorized` — token tidak ada atau tidak valid." },
+        500: { description: "`submit_failed`." },
+      },
+    },
+  })
   .get("/log", async ({ set, request }) => {
     // ponytail: user dari session; query param user_id tidak dipakai lagi (IDOR)
     const user = await getUser(request);
@@ -125,12 +211,83 @@ const api = new Elysia({ prefix: "/api" })
       return { error: "unauthorized" };
     }
     const rows = await sql`
-      SELECT id, ticket_number, description_raw, image_url, status, urgency, submitted_at
+      SELECT id, ticket_number, description_raw, image_url, status, urgency, submitted_at,
+             lat, lng, address
       FROM reports
       WHERE user_id = ${user.id}
       ORDER BY submitted_at DESC`;
     return { data: rows };
-  }, { tags: ["Reports"] })
+  }, {
+    tags: ["Reports"],
+    detail: {
+      summary: "Riwayat laporan user",
+      description: "Daftar laporan milik user yang login, terbaru dulu. Wajib `Authorization: Bearer <token>`. Tiap item memuat `lat`, `lng`, dan `address`.",
+      responses: {
+        200: {
+          description: "Daftar laporan.",
+          content: {
+            "application/json": {
+              example: {
+                data: [
+                  {
+                    id: "uuid",
+                    ticket_number: "LPK-1A2B3C4D",
+                    description_raw: "Lampu jalan mati\nLokasi: Jl. Ijen",
+                    image_url: null,
+                    status: "submitted",
+                    urgency: null,
+                    submitted_at: "2026-10-29T10:00:00.000Z",
+                    lat: -7.98,
+                    lng: 112.63,
+                    address: "Jl. Ijen, Malang",
+                  },
+                ],
+              },
+            },
+          },
+        },
+        401: { description: "`unauthorized`." },
+      },
+    },
+  })
+  // ponytail: proxy same-origin biar Nominatim internal, tanpa CORS; jangan pernah ke nominatim.openstreetmap.org
+  .get("/nominatim/search", ({ request, set }) => proxyNominatim("search", request, set), {
+    tags: ["Geocoding"],
+    query: t.Object({
+      q: t.Optional(t.String({ description: "Teks alamat yang dicari, mis. \"Jl. Ijen Malang\"." })),
+      format: t.Optional(t.String({ description: "Format Nominatim, gunakan `jsonv2`." })),
+      limit: t.Optional(t.String({ description: "Jumlah hasil, mis. `1`." })),
+      countrycodes: t.Optional(t.String({ description: "Batasi negara, mis. `id`." })),
+      "accept-language": t.Optional(t.String({ description: "Bahasa hasil, mis. `id`." })),
+    }, { additionalProperties: true }),
+    detail: {
+      summary: "Cari alamat (proxy Nominatim)",
+      description: "Meneruskan pencarian ke instance Nominatim internal (`NOMINATIM_URL`). Browser tidak memanggil Nominatim publik. Respons mengikuti Nominatim; `503 nominatim_not_configured` jika env kosong, `502 nominatim_unavailable` jika upstream gagal.",
+      responses: {
+        200: { description: "Respons Nominatim diteruskan apa adanya (format `jsonv2`)." },
+        502: { description: "`nominatim_unavailable` — upstream gagal dihubungi." },
+        503: { description: "`nominatim_not_configured` — `NOMINATIM_URL` kosong." },
+      },
+    },
+  })
+  .get("/nominatim/reverse", ({ request, set }) => proxyNominatim("reverse", request, set), {
+    tags: ["Geocoding"],
+    query: t.Object({
+      lat: t.Optional(t.String({ description: "Lintang titik, mis. `-7.98`." })),
+      lon: t.Optional(t.String({ description: "Bujur titik, mis. `112.63`." })),
+      format: t.Optional(t.String({ description: "Format Nominatim, gunakan `jsonv2`." })),
+      "accept-language": t.Optional(t.String({ description: "Bahasa hasil, mis. `id`." })),
+    }, { additionalProperties: true }),
+    detail: {
+      summary: "Alamat dari koordinat (proxy Nominatim)",
+      description: "Reverse geocoding lewat instance Nominatim internal (`NOMINATIM_URL`). Respons mengikuti Nominatim; `503 nominatim_not_configured` jika env kosong, `502 nominatim_unavailable` jika upstream gagal.",
+      responses: {
+        200: { description: "Respons Nominatim diteruskan apa adanya (format `jsonv2`)." },
+        502: { description: "`nominatim_unavailable` — upstream gagal dihubungi." },
+        503: { description: "`nominatim_not_configured` — `NOMINATIM_URL` kosong." },
+      },
+    },
+  })
   .post("/upload-image", async ({ set, request }) => {
     const form = await request.formData().catch(() => null);
     const file = form?.get("file");
