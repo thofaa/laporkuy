@@ -48,6 +48,36 @@ async function reverseGeocode(lng, lat, signal) {
   return json?.display_name ?? "";
 }
 
+export function MapPin({ longitude, latitude, zoom = 15 }) {
+  const mapRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (activeMaps++ === 0) addProtocol("pmtiles", protocol.tile);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      const map = mapRef.current?.getMap?.();
+      if (map && !map._removed) map.remove();
+      if (--activeMaps === 0) removeProtocol("pmtiles");
+    };
+  }, []);
+
+  return (
+    <Map
+      ref={mapRef}
+      mapStyle={MAP_STYLE}
+      initialViewState={{ longitude, latitude, zoom }}
+      interactive={false}
+      style={{ width: "100%", height: "100%" }}
+    >
+      <Marker longitude={longitude} latitude={latitude} anchor="bottom">
+        <span className="report-map__pin" aria-label="Lokasi laporan" />
+      </Marker>
+    </Map>
+  );
+}
+
 export default function MapView({ value, onChange }) {
   const mapRef = useRef(null);
   const abortRef = useRef(null);

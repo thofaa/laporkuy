@@ -6,7 +6,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import placeholderUrl from "../assets/report-placeholder.svg";
-import MapView from "../components/MapView.jsx";
+import MapView, { MapPin } from "../components/MapView.jsx";
 
 const STATUS_LABEL = {
   submitted: "Diproses",
@@ -98,6 +98,9 @@ function LogItem({ item, expanded, onToggle, onOpen }) {
 
 function ReportDetail({ item }) {
   const { location, description } = parseReport(item.description_raw);
+  const loc = item?.address || location;
+  const hasCoords =
+    Number.isFinite(Number(item?.lat)) && Number.isFinite(Number(item?.lng));
   return (
     <article className="report-detail">
       <img
@@ -105,8 +108,13 @@ function ReportDetail({ item }) {
         src={item.image_url || placeholderUrl}
         alt={item.image_url ? `Foto laporan ${item.ticket_number}` : "Laporan tanpa foto"}
       />
-      <p className="report-detail__location">{location || "Lokasi tidak tercantum"}</p>
-      <p className="report-detail__desc">{description || "—"}</p>
+      <p className="report-detail__location"><strong>Lokasi:</strong> {loc || "tidak tercantum"}</p>
+      <p className="report-detail__desc"><strong>Deskripsi:</strong> {description || "—"}</p>
+      {hasCoords && (
+        <div className="report-detail__map">
+          <MapPin longitude={Number(item.lng)} latitude={Number(item.lat)} />
+        </div>
+      )}
     </article>
   );
 }
