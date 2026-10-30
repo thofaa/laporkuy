@@ -289,13 +289,30 @@ a {
 
 /* Hero — retro monokrom ala Apple Lisa */
 .hero {
-  background-color: rgba(107, 107, 107, 0.1);
+  background-color: #cddde9;
   background-repeat: repeat;
   background-position: center;
   background-size: 1440px auto;
+  position: relative;
   color: #1e1e1e;
   border-bottom: 1.2px solid #1e1e1e;
   padding: 5rem 0 6rem;
+}
+
+.hero::after {
+  content: "";
+  background-image: url("./assets/hero_background.svg");
+  position: absolute;
+  top: 4%;
+  right: 12%;
+  width: 500px;
+  height: 80%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.7;
 }
 
 .hero__inner {
@@ -1005,8 +1022,8 @@ a {
 
 /* Footer */
 .footer {
-  background: #1e1e1e;
-  color: #c4c4c4;
+  background: #CDDDE9;
+  color: #1e1e1e;
   font-family: "IBM Plex Mono", monospace;
   padding-top: 3.5rem;
 }
@@ -1021,7 +1038,7 @@ a {
 .footer__logo {
   font-size: 1.35rem;
   font-weight: 600;
-  color: #ffffff;
+  color: #1e1e1e;
 }
 
 .footer__desc {
@@ -1036,7 +1053,7 @@ a {
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #ffffff;
+  color: #1e1e1e;
 }
 
 .footer__col li + li {
@@ -1048,7 +1065,7 @@ a {
 }
 
 .footer__col a:hover {
-  color: #ffffff;
+  color: #1e1e1e;
   text-decoration: underline;
 }
 
@@ -1060,7 +1077,7 @@ a {
   padding: 1.25rem 24px;
   border-top: 1.2px solid rgba(255, 255, 255, 0.16);
   font-size: 0.75rem;
-  color: #9a9a9a;
+  color: #1e1e1e;
 }
 
 /* Responsive */
@@ -1122,6 +1139,12 @@ a {
 
   .live-chat__message {
     width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .hero::after {
+    display: none;
   }
 }
 
@@ -1314,7 +1337,7 @@ a {
 /* Preview menempel ke log-item: tanpa margin/gap */
 .log-item__preview {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 250px 1fr;
   border-top: 1.2px solid #1e1e1e;
 }
 
@@ -1371,13 +1394,19 @@ a {
   background: #f4f4f4;
 }
 
+.report-detail__map {
+  width: 100%;
+  height: 240px;
+  border: 1.2px solid #1e1e1e;
+  background: #f2f2f2;
+}
+
 .report-detail__location {
-  font-size: 0.85rem;
-  color: #6b6b6b;
+  font-size: 1.1rem;
 }
 
 .report-detail__desc {
-  font-size: 0.92rem;
+  font-size: 1.1rem;
   white-space: pre-wrap;
 }
 

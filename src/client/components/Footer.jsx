@@ -57,7 +57,6 @@ export default function Footer() {
             <li>
               <a href="tel:+62341000000">(0341) 000-000</a>
             </li>
-            <li>Senin–Jumat 08.00–16.00</li>
           </ul>
         </div>
       </div>

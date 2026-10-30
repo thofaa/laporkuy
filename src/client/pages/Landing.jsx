@@ -3,6 +3,7 @@ import reportImage from "../assets/report-placeholder.svg";
 import shadeUrl from "../assets/shade.png";
 
 // ponytail: guard pindah ke server (/api/submit-laporan 401), /lapor bebas dilihat
+//style={{ backgroundImage: `url(${shadeUrl})` }}
 
 const REPORTS = [
   {
@@ -42,7 +43,6 @@ export default function Landing() {
     <>
       <section
         className="hero"
-        style={{ backgroundImage: `url(${shadeUrl})` }}
       >
         <div className="container hero__inner">
           <p className="hero__eyebrow">Pemerintah Kota Malang</p>
