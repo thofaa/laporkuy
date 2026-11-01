@@ -1,145 +1,112 @@
-# LaporKuy pelengkap frontend dan alur laporan
+## Perubahan yang dikerjakan
 
-Paket ini melanjutkan kode awal LaporKuy dari ZIP temanmu. Frontend React tetap memakai tema monokrom. Halaman pemerintah, katalog publik, pelacakan, dan riwayat tersambung ke API pelengkap. Tidak memerlukan dependency baru di luar package.json awal.
+### 1. Navigasi akun masyarakat
 
-## Cara tercepat mencoba tampilan dan semua interaksi
+- Mengarahkan masyarakat ke landing page setelah login.
+- Menampilkan akses Laporan Saya dan tombol keluar pada navigasi utama.
+- Menghapus menu Lacak Laporan yang bertumpuk dengan Laporan Saya.
+- Menghapus tautan Lacak Tiket dan Katalog Publik dari sidebar formulir.
+- Mempertahankan menu Buat Laporan dan Riwayat Laporan pada formulir.
 
-1. Ekstrak ZIP ke folder terpisah agar mudah dibandingkan dengan proyek lama.
-2. Buka folder yang langsung berisi `package.json` di VS Code.
-3. Buka terminal lalu jalankan satu per satu:
+### 2. Laporan Saya
 
-```powershell
-bun install
-bun run demo
-```
+- Menampilkan laporan milik pengguna secara otomatis setelah halaman dibuka.
+- Mempertahankan pencarian untuk memudahkan pengguna dengan banyak laporan.
+- Menyediakan akses detail, status, progres, dan riwayat penanganan.
+- Menambahkan tampilan ketika data sedang dimuat, kosong, atau gagal diambil.
 
-4. Buka alamat yang dicetak terminal, biasanya `http://localhost:3000`.
-5. Buka halaman Masuk, pilih salah satu tombol akun demo, kemudian klik Masuk.
+### 3. Navigasi admin dan petugas dinas
 
-Tidak perlu `.env`, Docker, atau PostgreSQL untuk mode demo. Jika `.env` lama berisi PORT berbeda, gunakan alamat yang ditampilkan terminal. Mode demo ditandai banner kuning. Semua akun, gambar, laporan, dan perubahan demo hanya ada di memori proses; data akan direset ketika server dimulai ulang. Jangan gunakan mode demo untuk menerima pengaduan sungguhan.
+- Membuat tampilan navigasi petugas yang berbeda dari masyarakat.
+- Menyediakan menu dashboard, pengelolaan laporan, dan katalog publik.
+- Menyesuaikan judul serta menu dengan peran akun.
+- Mempertahankan navigasi petugas saat membuka katalog publik.
+- Menyediakan tombol keluar dari akun.
 
-| Akun demo | Email | Password |
-| --- | --- | --- |
-| Masyarakat | warga@demo.test | WargaDemo123! |
-| Admin pemerintah/pusat | admin@demo.test | AdminDemo123! |
-| Petugas dinas PU | petugas@demo.test | PetugasDemo123! |
+### 4. Pengelolaan laporan
 
-Tiket contoh: `LPK-DEMO0001`, `LPK-DEMO0002`, `LPK-DEMO0003`. Lacak menggunakan akun masyarakat di atas. Akun masyarakat baru hanya dapat melacak laporannya sendiri.
+- Melengkapi halaman dashboard, daftar, dan detail laporan pemerintah.
+- Menyediakan pembaruan status serta progres penanganan.
+- Mendukung pemeriksaan laporan dan penugasan kepada dinas.
+- Membedakan akses admin dengan petugas dinas berdasarkan kewenangannya.
 
-## Halaman yang tersedia
+### 5. Katalog publik
 
-| Alamat | Fungsi |
-| --- | --- |
-| `/` | Beranda dengan ringkasan laporan publik dari API |
-| `/masuk`, `/daftar` | Autentikasi email; role menentukan halaman sesudah login |
-| `/lapor` | Membuat laporan, foto opsional, izin publikasi opsional |
-| `/log` | Riwayat laporan milik pengguna beserta nomor tiket |
-| `/lacak?tiket=LPK-DEMO0001` | Detail pribadi, progres persentase, dan riwayat tanggapan |
-| `/laporan` | Katalog publik, pencarian, filter status, dan pagination |
-| `/laporan/LPK-DEMO0001` | Ringkasan laporan yang sudah diizinkan untuk publik |
-| `/pemerintah` | Dashboard admin/petugas, ringkasan dan filter laporan |
-| `/pemerintah/laporan/ID` | Detail, tanggapan, progres, penugasan dinas, dan moderasi |
-| `/tentang`, `/faq`, `/kontak`, `/privasi`, `/syarat` | Informasi prototipe |
+- Menambahkan halaman daftar dan detail laporan publik.
+- Menampilkan ringkasan laporan tanpa identitas pelapor.
+- Membatasi publikasi berdasarkan persetujuan pelapor dan pemeriksaan admin.
+- Menyediakan akses katalog dari area masyarakat maupun petugas.
 
-## Cara menguji alur demo
+### 6. Landing page dan halaman informasi
 
-1. Masuk sebagai Masyarakat, buat laporan, dan simpan nomor tiketnya. Centang izin publikasi jika ingin mencoba katalog.
-2. Keluar melalui menu akun kanan atas.
-3. Masuk sebagai Admin pemerintah. Buka dashboard, klik Tinjau pada laporan tersebut.
-4. Pilih dinas, status, progres, dan tulis tanggapan. Simpan tanggapan.
-5. Bila pelapor memberi izin, admin dapat mengisi judul/deskripsi publik yang sudah dibersihkan dari data pribadi, lalu mencentang publikasi.
-6. Masuk kembali sebagai Masyarakat, buka Riwayat atau Lacak Laporan. Tanggapan dan progres telah berubah.
-7. Buka Katalog untuk melihat ringkasan yang sudah diterbitkan.
+- Menyesuaikan kembali landing page dengan struktur tampilan proyek teman.
+- Mempertahankan bagian hero, pencarian, LiveChatSection, dan daftar laporan.
+- Menghubungkan laporan terbaru dengan API.
+- Menambahkan halaman FAQ, tentang, dan kontak.
 
-Progres diisi petugas, bukan dihitung dengan AI. Status Selesai harus 100%; status Ditolak harus 0%. Status Digabung belum memiliki alur penggabungan, sehingga tidak ditawarkan dalam form perubahan.
+### 7. Backend pendukung
 
-## Memakai PostgreSQL sungguhan
+- Menambahkan API untuk laporan pribadi, pelacakan, katalog publik,
+  dan pengelolaan laporan pemerintah.
+- Menambahkan pemeriksaan autentikasi, kepemilikan laporan, dan peran akun.
+- Menambahkan dukungan penyimpanan PostgreSQL serta migrasi alur laporan.
+- Melengkapi penanganan unggahan foto.
+- Menambahkan fungsi API bersama untuk frontend.
 
-1. Pasang/jalankan PostgreSQL. Bila memakai Docker Desktop dari konfigurasi proyek ini:
+### 8. Mode demo dan alat bantu
 
-```powershell
-docker compose up -d db minio
-```
+- Menambahkan mode demo dengan data sementara.
+- Menyediakan akun contoh masyarakat, admin, dan petugas dinas.
+- Menambahkan script pengaturan peran dan penambahan dinas.
+- Menambahkan pengujian alur laporan dan pembatasan akses.
 
-2. Salin `.env.example` menjadi `.env` (jangan menimpa `.env` yang sudah kamu atur):
+## Lokasi kode utama
 
-```powershell
-Copy-Item .env.example .env
-```
+| Lokasi | Pekerjaan terkait |
+|---|---|
+| `src/client/App.jsx` | Pengaturan halaman dan layout |
+| `src/client/components/Header.jsx` | Navigasi utama dan tombol akun |
+| `src/client/components/ReportHeader.jsx` | Header area laporan |
+| `src/client/components/StaffLayout.jsx` | Layout dan navigasi petugas |
+| `src/client/components/ReportWidgets.jsx` | Komponen status dan progres laporan |
+| `src/client/pages/Auth.jsx` | Login dan pengalihan setelah masuk |
+| `src/client/pages/Landing.jsx` | Landing page |
+| `src/client/pages/Report.jsx` | Formulir dan riwayat laporan |
+| `src/client/pages/TrackReport.jsx` | Laporan Saya dan pencarian |
+| `src/client/pages/Government.jsx` | Dashboard dan pengelolaan laporan |
+| `src/client/pages/PublicReports.jsx` | Katalog dan detail laporan publik |
+| `src/client/pages/Info.jsx` | FAQ, tentang, dan kontak |
+| `src/client/lib/api.js` | Pemanggilan API dari frontend |
+| `src/client/workflow.css` | Gaya komponen laporan dan area petugas |
+| `src/server/` | API, autentikasi, dan penyimpanan |
+| `src/shared/reports.js` | Definisi bersama terkait laporan |
+| `db/migrations/` | Migrasi database |
+| `scripts/` | Mode demo dan alat administrasi |
+| `tests/workflow.test.js` | Pengujian alur laporan |
 
-3. Isi `DATABASE_URL` sesuai database lokal. Pastikan `DEMO_MODE=false`.
-4. Jalankan:
+## Menjalankan versi demo
 
-```powershell
-bun run db:migrate
-bun dev
-```
+Jalankan dari folder yang berisi `package.json`:
 
-Migrasi dijalankan berurutan dan dicatat pada `schema_migrations`. Migrasi pelengkap menambahkan `image_url`, progres, izin publikasi, field ringkasan publik, dan masa berlaku sesi. Tidak menghapus data lama. `db/schema.sql` adalah snapshot untuk database kosong; jangan mengimpor snapshot dan menjalankan migrasi awal pada database yang sama. Jika database lama dibuat melalui impor SQL manual dan belum memiliki catatan migrasi, selaraskan baseline migrasinya bersama pengelola backend sebelum melanjutkan.
+    bun install
+    bun run demo
 
-Untuk memakai unggahan foto, jalankan layanan SeaweedFS/S3 dan isi variabel `MINIO_*`. Untuk teks saja layanan penyimpanan tidak diperlukan. Aplikasi melayani URL `/uploads/` sendiri sehingga akses foto lokal tidak memerlukan Nginx. Nama objek acak bukan pengganti otorisasi: foto tidak dimasukkan ke katalog publik, tetapi siapa pun yang mendapatkan URL gambar dapat membukanya. Penguatan akses objek privat perlu dikerjakan sebelum menampung foto sensitif.
+Buka alamat yang ditampilkan di terminal.
 
-### Menyiapkan akun petugas
+Mode demo menggunakan data sementara. Perubahan data akan hilang ketika
+server dimulai ulang.
 
-Daftar akun melalui web dahulu. Pada terminal pengelola database:
+## Catatan integrasi
 
-```powershell
-bun run add-dinas pu "Dinas Pekerjaan Umum"
-bun run set-role petugas@contoh.id pemerintah pu
-bun run set-role pengelola@contoh.id admin
-```
+Pekerjaan awal disimpan pada branch `frontend-javi`, kemudian diintegrasikan
+melalui branch `integrasi-javi` dan Pull Request #3 ke `master`.
 
-Ganti email dengan akun yang benar-benar didaftarkan. Role pemerintah wajib tertaut pada dinas dan hanya dapat melihat laporan untuk dinas tersebut. Admin pusat dapat menangani seluruh laporan, menetapkan dinas, dan menyetujui publikasi. Role tidak dapat dipilih sendiri dari form pendaftaran. Masuk ulang setelah mengubah role.
+Hasil integrasi mempertahankan isi kode versi `frontend-javi`.
+Perubahan khusus master yang tidak terdapat pada versi tersebut tidak
+dipertahankan dalam hasil integrasi. Riwayat commit kedua versi tetap tersambung.
 
-### Docker seluruh stack (opsional)
+## Catatan dokumentasi
 
-Install dependency lebih dulu dari host (`bun install`), lalu jalankan database dan migrasi seperti langkah di atas. Setelah itu `docker compose up -d` membuka Nginx pada `http://localhost:8080`. Jangan jalankan server host pada port yang sama bersamaan. Konfigurasi Nginx pelengkap menuju service app, dan direktori node_modules tersedia melalui bind mount seperti konfigurasi awal. Untuk lingkungan lintas OS, instal dependency di dalam container/volume Linux sebelum penggunaan penuh; mode demo lokal merupakan jalur termudah untuk pengerjaan frontend.
-
-## Pembagian file frontend
-
-- `src/client/pages/Government.jsx`: dashboard, detail dan form tindak lanjut.
-- `src/client/pages/PublicReports.jsx`: katalog, pencarian, pagination dan detail publik.
-- `src/client/pages/TrackReport.jsx`: form pencarian tiket dan timeline pribadi.
-- `src/client/components/ReportWidgets.jsx`: badge, progress, timeline, tabel navigasi halaman.
-- `src/client/workflow.css`: CSS pelengkap responsif.
-- `src/client/lib/api.js`: pemanggilan API dan token.
-- `src/client/App.jsx`: pemilihan halaman.
-
-Lihat `PERUBAHAN.md` untuk daftar file baru dan file yang diganti. Salin file pelengkap secara terarah jika ingin menggabungkan dengan branch temanmu. Paket tidak menyertakan `.git`, `.env`, atau `node_modules`.
-
-## Kontrak API
-
-Request privat memakai `Authorization: Bearer TOKEN`. Body POST/PATCH berupa JSON, kecuali upload yang memakai FormData.
-
-| Method | Endpoint | Hasil / akses |
-| --- | --- | --- |
-| GET | `/api/meta` | Status mode demo; akun contoh hanya ada di demo |
-| POST | `/api/auth/register` | `{email,password,full_name}`; selalu membuat role user |
-| POST | `/api/auth/login` | `{email,password}` → `{token,user}` |
-| GET | `/api/auth/me` | Akun dari token sesi server |
-| POST | `/api/auth/logout` | Membatalkan token |
-| POST | `/api/submit-laporan` | `{description_raw,image_url,is_public}` → laporan + tiket |
-| POST | `/api/upload-image` | FormData field `file`, perlu login, maksimum 5 MB |
-| GET | `/api/log` | Riwayat pribadi |
-| GET | `/api/track/:ticket` | Laporan pribadi dan history; hanya pemilik/admin/dinas berwenang |
-| GET | `/api/reports?q=&status=&page=` | Ringkasan publik; 12 per halaman |
-| GET | `/api/reports/:ticket` | Detail publik; tidak berisi identitas, isi mentah, atau gambar |
-| GET | `/api/government/reports?q=&status=&page=` | Daftar dan summary berdasarkan hak akses |
-| GET | `/api/government/reports/:id` | Detail pribadi dan history untuk petugas berwenang |
-| GET | `/api/government/dinas` | Daftar dinas untuk petugas |
-| PATCH | `/api/government/reports/:id` | Simpan status, progres, tanggapan, penugasan/publikasi khusus admin |
-
-Body PATCH mencakup `status`, `progress_percent`, `note`, `expected_updated_at`; admin juga dapat mengisi `dinas_id`, `moderation_status` (`held`/`pending`/`published`), `public_title`, `public_location`, `description_redacted`. Kirim waktu versi terbaru dari detail agar perubahan petugas lain menghasilkan 409, bukan tertimpa.
-
-## Pengujian dan batas implementasi
-
-```powershell
-bun test
-bun run build:check
-```
-
-Tes API mencakup login/otorisasi per dinas, daftar publik tanpa identitas, pengiriman laporan, tracking pribadi, tanggapan/progres, persetujuan publikasi, konflik pembaruan, validasi dan logout. Adapter PostgreSQL memakai transaksi untuk status/history/notifikasi/audit.
-
-Belum mencakup integrasi AI/JEV, integrasi resmi instansi pemerintah, pemulihan password, login Google, email/push notifikasi, atau penggabungan laporan duplikat. Tabel notifikasi diisi saat pembaruan PostgreSQL; pengiriman notifikasi dan antarmuka notifikasi belum dibuat. Redis belum digunakan. Statistik beranda berasal dari laporan yang sudah dipublikasikan dan bukan data percakapan live chat.
-
-Pencarian/pagination saat ini menyaring data pada server setelah pembacaan tabel; optimalkan query/index/pagination langsung di database untuk volume besar. Sebelum menerima pengaduan sungguhan diperlukan deployment dengan HTTPS, penguatan sesi/rate limit, kebijakan data, dan otorisasi objek foto. Mode produksi harus menonaktifkan demo (`DEMO_MODE=false`, `NODE_ENV=production`).
+Daftar ini merangkum pekerjaan selama pengembangan. Untuk mengetahui
+perubahan baris kode secara tepat, lihat tab Files changed pada Pull Request
+serta riwayat commit terkait.
