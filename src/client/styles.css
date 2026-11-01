@@ -6,13 +6,14 @@
   --sand: #f6f6f6;
   --sand-deep: #e2e2e2;
   --paper: #ffffff;
-  --red: #c8102e;
-  --red-dark: #9b0c24;
-  --red-soft: #fdf0f1;
-  --red-mid: #f1b9c1;
-  --bar: #9b0c24;
-  --hero-bg: linear-gradient(#fdf0f1, #fdf0f1);
-  --footer-bg: #9b0c24;
+  --red: #1d4f7c;
+  --red-dark: #123a5e;
+  --red-soft: #cddde9;
+  --red-mid: #cddde9;
+  --bar: #123a5e;
+  --hero-bg: linear-gradient(#cddde9, #cddde9);
+  --footer-bg: #123a5e;
+  --accent: #e8a317;
   --ink: #1f1f1f;
   --muted: #5b6b7a;
   --line: #e4e8ec;
@@ -37,7 +38,7 @@ body {
   background: var(--paper);
 }
 
-/* sticky footer: footer tetap di bawah saat konten pendek */
+
 #root {
   display: flex;
   min-height: 100vh;
@@ -162,7 +163,7 @@ a {
   color: var(--red);
 }
 
-/* ponytail: .btn--outline asli utk hero gelap; di canvas putih pakai ghost-style */
+
 .report-canvas .btn--outline {
   background: #ffffff;
   color: var(--red);
@@ -197,7 +198,7 @@ a {
 .topbar__dot {
   width: 8px;
   height: 8px;
-  background: #ffffff;
+  background: var(--accent);
 }
 
 /* Header */
@@ -226,7 +227,7 @@ a {
 }
 
 .brand__dot {
-  color: var(--red);
+  color: var(--accent);
 }
 
 .header__toggle {
@@ -298,7 +299,7 @@ a {
   gap: 0.75rem;
 }
 
-/* Hero — latar merah muda flat (tekstur titik shade.png tetap di atasnya) */
+/* Hero — latar biru muda flat (tekstur titik shade.png tetap di atasnya) */
 .hero {
   background-color: transparent;
   background-image: var(--hero-bg);
@@ -579,7 +580,7 @@ a {
   font-weight: 600;
 }
 
-/* status: hijau = selesai, kuning = diproses, abu = menunggu, merah = eskalasi */
+/* status: hijau = selesai, kuning = diproses, abu = menunggu, merah = eskalasi (merah sengaja dipertahankan) */
 .status--done { background: #e1f1e7; border-color: #2e7d4f; color: #1e5a37; }
 .status--progress { background: #fbefc9; border-color: #c99a14; color: #6b4e00; }
 .status--waiting { background: #eef0f3; border-color: #8a94a0; color: #424b57; }
@@ -1029,7 +1030,7 @@ a {
 /* Footer */
 .footer {
   background: var(--footer-bg);
-  color: #f3d6da;
+  color: #d6e3ef;
   font-family: var(--font);
   padding-top: 3.5rem;
 }
@@ -1083,7 +1084,7 @@ a {
   padding: 1.25rem 24px;
   border-top: 1.2px solid rgba(255, 255, 255, 0.25);
   font-size: 0.75rem;
-  color: #e9a9b3;
+  color: #a9c3da;
 }
 
 /* Responsive */
@@ -1372,7 +1373,7 @@ a {
   overflow-wrap: anywhere;
 }
 
-/* Tampilan full laporan (dari tombol Buka) */
+
 .report-detail {
   max-width: 720px;
   margin-top: 1.75rem;
@@ -1647,3 +1648,5 @@ textarea.report-input {
 .report-card__foot span:last-child {
   font-family: "IBM Plex Mono", monospace;
 }
+
+
