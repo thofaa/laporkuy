@@ -90,14 +90,14 @@ export default function Header() {
                 <>
                   <a
                     className="header__link"
-                    href={isStaff ? "/pemerintah" : "/lacak"}
+                    href={isStaff ? "/pemerintah" : "/lapor"}
                     onClick={() => setOpen(false)}
                   >
                     {isStaff
                       ? user.role === "admin"
-                        ? "Dashboard pemerintah"
+                        ? "Dashboard"
                         : "Dashboard dinas"
-                      : "Laporan Saya"}
+                      : "Dashboard"}
                   </a>
                     
                   <button

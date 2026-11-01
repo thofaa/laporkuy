@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LayoutDashboard, ClipboardList, Globe2, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, ClipboardList, ClipboardCheck, LogOut, Menu, X } from "lucide-react";
 import { api, loginURL } from "../lib/api.js";
 import { Notice } from "./ReportWidgets.jsx";
 
@@ -61,12 +61,14 @@ export default function StaffLayout({ path, children }) {
   const role = admin ? "Admin pemerintah" : "Petugas dinas";
   const catalogue = path === "/pemerintah/katalog" || path.startsWith("/pemerintah/katalog/");
   const managing = path === "/pemerintah/daftar" || path.startsWith("/pemerintah/laporan/");
-  const title = catalogue ? "Katalog publik" : managing ? (admin ? "Kelola laporan" : "Laporan dinas") : "Dashboard";
+  const review = admin && path === "/pemerintah/tinjau";
   const links = [
-    { href: "/pemerintah", label: admin ? "Dashboard" : "Dashboard dinas", icon: LayoutDashboard, active: !catalogue && !managing },
-    { href: "/pemerintah/daftar", label: admin ? "Kelola laporan" : "Laporan dinas", icon: ClipboardList, active: managing },
-    { href: "/pemerintah/katalog", label: "Katalog publik", icon: Globe2, active: catalogue },
+    { href: "/pemerintah", label: admin ? "Dashboard" : "Dashboard dinas", icon: LayoutDashboard, active: !managing && !review && !catalogue },
+    { href: "/pemerintah/daftar", label: admin ? "Kelola Laporan" : "Laporan dinas", icon: ClipboardList, active: managing },
   ];
+  if (admin) links.push({ href: "/pemerintah/tinjau", label: "Tinjau Laporan", icon: ClipboardCheck, active: review });
+  // Katalog publik di-comment sementara.
+  // links.push({ href: "/pemerintah/katalog", label: "Katalog publik", icon: Globe2, active: catalogue });
 
   return <div className="lk-staff">
     <aside className="lk-staff__sidebar">
@@ -74,15 +76,13 @@ export default function StaffLayout({ path, children }) {
         <a className="brand" href="/pemerintah" aria-label="LaporKuy — dashboard petugas">Laporkuy<span className="brand__dot">.</span></a>
         <button id="staff-menu-toggle" type="button" className="lk-staff__toggle" aria-controls="staff-navigation" aria-expanded={open} aria-label={open ? "Tutup navigasi petugas" : "Buka navigasi petugas"} onClick={() => setOpen(v => !v)}>{open ? <X size={20} /> : <Menu size={20} />}</button>
       </div>
-      <div className="lk-staff__identity"><p className="lk-kicker">RUANG KERJA</p><strong>{role}</strong><span>{admin ? "Pengelolaan lintas dinas" : "Penanganan laporan dinas"}</span></div>
       <nav id="staff-navigation" className={`lk-staff__navigation${open ? " lk-staff__navigation--open" : ""}`} aria-label={`Navigasi ${role.toLowerCase()}`}>
         <p className="lk-kicker">MENU UTAMA</p>
         {links.map(({ href, label, icon: Icon, active }) => <a key={href} href={href} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}><Icon size={18} aria-hidden="true" /><span>{label}</span></a>)}
       </nav>
-      <div className="lk-staff__account"><p className="lk-kicker">AKUN AKTIF</p><strong>{user.full_name || role}</strong><span>{user.email}</span><button type="button" className="btn btn--ghost" disabled={leaving} onClick={logout}><LogOut size={16} aria-hidden="true" />{leaving ? "Keluar..." : "Keluar akun"}</button></div>
+      <div className="lk-staff__account"><strong>{user.full_name || role}</strong><span>{user.email}</span><button type="button" className="btn btn--ghost" disabled={leaving} onClick={logout}><LogOut size={16} aria-hidden="true" />{leaving ? "Keluar..." : "Keluar akun"}</button></div>
     </aside>
     <div className="lk-staff__workspace">
-      <header className="lk-staff__topbar"><p>{role}<span aria-hidden="true"> / </span><strong>{title}</strong></p><span className="lk-badge">{catalogue ? "Tampilan publik · Baca saja" : "Area kerja petugas"}</span></header>
       <main id="main">{children(user)}</main>
       <footer className="lk-staff__footer">LaporKuy · Ruang kerja {admin ? "pemerintah" : "dinas"}</footer>
     </div>

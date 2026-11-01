@@ -15,8 +15,8 @@ export function createPostgresStore() {
     async logout(token) { await sql`delete from sessions where token = ${token}`; },
     async createReport(input) {
       return sql.begin(async tx => {
-        const [row] = await tx`insert into reports (ticket_number,user_id,description_raw,image_url,is_public)
-          values (${input.ticket_number},${input.user_id},${input.description_raw},${input.image_url},${input.is_public}) returning *`;
+        const [row] = await tx`insert into reports (ticket_number,user_id,description_raw,image_url,is_public,lat,lng,address)
+          values (${input.ticket_number},${input.user_id},${input.description_raw},${input.image_url},${input.is_public},${input.lat},${input.lng},${input.address}) returning *`;
         await tx`insert into report_status_history (report_id,to_status,actor_id,actor_type,note,progress_percent)
           values (${row.id},'submitted',${input.user_id},'user','Laporan diterima oleh sistem.',0)`;
         return row;
@@ -26,16 +26,28 @@ export function createPostgresStore() {
     async get(id) { return (await sql`select r.*,d.name as dinas_name from reports r left join dinas d on d.id=r.dinas_id where r.id=${id}`)[0]; },
     async ticket(ticket) { return (await sql`select r.*,d.name as dinas_name from reports r left join dinas d on d.id=r.dinas_id where r.ticket_number=${ticket}`)[0]; },
     async history(id) { return sql`select id,from_status,to_status,note,progress_percent,created_at from report_status_history where report_id=${id} order by created_at`; },
+    async feedbacks(reportId, userId) {
+      return sql`select id,message,sender_name,sender_role,created_at,(sender_id = ${userId}) as mine
+        from report_feedbacks where report_id=${reportId} order by created_at`;
+    },
+    async addFeedback(reportId, user, message) {
+      return (await sql`insert into report_feedbacks (report_id,sender_id,sender_name,sender_role,message)
+        values (${reportId},${user.id},${user.full_name ?? null},${user.role},${message})
+        returning id,message,sender_name,sender_role,created_at,true as mine`)[0];
+    },
     async dinas() { return sql`select id,slug,name from dinas where is_active=true order by name`; },
     async update(id, input, actor, expected) {
       return sql.begin(async tx => {
         const [before] = await tx`select * from reports where id=${id} for update`;
         if (!before || new Date(before.updated_at).toISOString() !== new Date(expected).toISOString()) return null;
+        const resolved = input.status === "resolved";
         const [after] = await tx`update reports set status=${input.status},progress_percent=${input.progress_percent},
           dinas_id=${input.dinas_id},moderation_status=${input.moderation_status},
           public_title=${input.public_title},public_location=${input.public_location},
           description_redacted=${input.description_redacted},updated_at=now(),
-          resolved_at=${input.status === "resolved" ? new Date() : null}
+          resolved_at=${resolved ? new Date() : null},
+          resolution_requested_at=${resolved ? new Date() : null},
+          resolution_request_note=${resolved ? input.note : null}
           where id=${id} returning *`;
         await tx`insert into report_status_history (report_id,from_status,to_status,actor_id,actor_type,note,progress_percent)
           values (${id},${before.status},${input.status},${actor.id},${actor.role},${input.note},${input.progress_percent})`;
@@ -44,6 +56,33 @@ export function createPostgresStore() {
         await tx`insert into audit_logs (actor_id,actor_type,action,entity_type,entity_id)
           values (${actor.id},${actor.role},'report_update','report',${id})`;
         return after;
+      });
+    },
+    async respondResolution(id, action, userId) {
+      return sql.begin(async tx => {
+        const [row] = await tx`select * from reports where id=${id} for update`;
+        if (!row || row.user_id !== userId) return null;
+        if (!row.resolution_requested_at) return { error: "no_request" };
+        if (action === "approve") {
+          const [after] = await tx`update reports set resolution_requested_at=null,resolution_request_note=null,updated_at=now()
+            where id=${id} returning *`;
+          await tx`insert into report_status_history (report_id,from_status,to_status,actor_id,actor_type,note,progress_percent)
+            values (${id},'resolved','resolved',${userId},'user','Pelapor menyetujui status selesai.',100)`;
+          return { report: after };
+        }
+        if (action !== "reject") return { error: "invalid_action" };
+        const [prev] = await tx`select progress_percent from report_status_history
+          where report_id=${id} and progress_percent < 100 order by created_at desc limit 1`;
+        const progress = prev ? prev.progress_percent : 0;
+        const [after] = await tx`update reports set status='in_progress',progress_percent=${progress},resolved_at=null,
+          resolution_requested_at=null,resolution_request_note=null,updated_at=now()
+          where id=${id} returning *`;
+        await tx`insert into report_status_history (report_id,from_status,to_status,actor_id,actor_type,note,progress_percent)
+          values (${id},'resolved','in_progress',${userId},'user','Pelapor menolak status selesai; laporan dikembalikan untuk ditangani kembali.',${progress})`;
+        if (row.dinas_id) await tx`insert into notifications (user_id,report_id,type,payload)
+          select id,${id},'resolution_rejected',${JSON.stringify({ progress_percent: progress })}
+          from users where role='pemerintah' and dinas_id=${row.dinas_id}`;
+        return { report: after };
       });
     },
   };

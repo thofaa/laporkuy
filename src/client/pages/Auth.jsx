@@ -168,7 +168,32 @@ export default function Auth({ mode }) {
             <button className="btn btn--primary auth__submit" type="submit" disabled={busy}>
               {busy ? "Memproses..." : isLogin ? "Masuk" : "Daftar"}
             </button>
-          </form>
+                    </form>
+
+          <div className="auth__divider">
+            <span>atau</span>
+          </div>
+
+          <button
+            type="button"
+            className="auth__google"
+            disabled={busy}
+            onClick={() =>
+              setError("Login dengan Google belum tersedia.")
+            }
+          >
+              <img
+                src="https://developers.google.com/identity/images/g-logo.png"
+                alt=""
+                width="20"
+                height="20"
+                aria-hidden="true"
+                style={{ display: "block", flexShrink: 0 }}
+              />
+            <span>
+              {isLogin ? "Masuk dengan Google" : "Daftar dengan Google"}
+            </span>
+          </button>
 
           <p className="auth__alt">
             {isLogin ? (
