@@ -15,6 +15,7 @@ export function createDemoStore() {
   const sessions = new Map();
   const reports = new Map();
   const histories = new Map();
+  const feedbacks = new Map();
   const examples = [
     ["LPK-DEMO0001", "Jalan berlubang di Soekarno Hatta", "Lowokwaru, Kota Malang", "Lubang di badan jalan membahayakan pengendara saat hujan.", "in_progress", 45, 0],
     ["LPK-DEMO0002", "Sampah menumpuk di sekitar TPS", "Klojen, Kota Malang", "Pengangkutan sampah perlu ditingkatkan agar akses warga kembali bersih.", "resolved", 100, 1],
@@ -57,14 +58,45 @@ export function createDemoStore() {
     async get(id) { return decorate(reports.get(id)); },
     async ticket(ticket) { return decorate([...reports.values()].find(r => r.ticket_number === ticket)); },
     async history(id) { return histories.get(id) ?? []; },
+    async feedbacks(reportId, userId) {
+      return (feedbacks.get(reportId) ?? []).map(f => ({ ...f, mine: f.sender_id === userId }));
+    },
+    async addFeedback(reportId, user, message) {
+      const row = { id: randomUUID(), sender_id: user.id, message, sender_name: user.full_name ?? null, sender_role: user.role, created_at: new Date().toISOString() };
+      if (!feedbacks.has(reportId)) feedbacks.set(reportId, []);
+      feedbacks.get(reportId).push(row);
+      return row;
+    },
     async dinas() { return dinas; },
     async update(id, input, actor, expected) {
       const row = reports.get(id);
       if (!row || (row.updated_at ?? row.submitted_at) !== expected) return null;
       const event = { id: randomUUID(), from_status: row.status, to_status: input.status, note: input.note, progress_percent: input.progress_percent, created_at: new Date(Math.max(Date.now(), Date.parse(row.updated_at ?? row.submitted_at) + 1)).toISOString() };
-      Object.assign(row, input, { updated_at: event.created_at });
+      const resolved = input.status === "resolved";
+      Object.assign(row, input, { updated_at: event.created_at,
+        resolved_at: resolved ? event.created_at : null,
+        resolution_requested_at: resolved ? event.created_at : null,
+        resolution_request_note: resolved ? input.note : null });
       histories.get(id).push(event);
       return decorate(row);
+    },
+    async respondResolution(id, action, userId) {
+      const row = reports.get(id);
+      if (!row || row.user_id !== userId) return null;
+      if (!row.resolution_requested_at) return { error: "no_request" };
+      const at = new Date().toISOString();
+      if (action === "approve") {
+        row.resolution_requested_at = null; row.resolution_request_note = null; row.updated_at = at;
+        histories.get(id).push({ id: randomUUID(), from_status: "resolved", to_status: "resolved", note: "Pelapor menyetujui status selesai.", progress_percent: 100, created_at: at });
+        return { report: decorate(row) };
+      }
+      if (action !== "reject") return { error: "invalid_action" };
+      const prev = (histories.get(id) ?? []).filter(h => h.progress_percent < 100).at(-1);
+      const progress = prev ? prev.progress_percent : 0;
+      Object.assign(row, { status: "in_progress", progress_percent: progress, resolved_at: null,
+        resolution_requested_at: null, resolution_request_note: null, updated_at: at });
+      histories.get(id).push({ id: randomUUID(), from_status: "resolved", to_status: "in_progress", note: "Pelapor menolak status selesai; laporan dikembalikan untuk ditangani kembali.", progress_percent: progress, created_at: at });
+      return { report: decorate(row) };
     },
   };
 }

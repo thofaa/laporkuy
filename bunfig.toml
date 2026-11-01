@@ -1,0 +1,4 @@
+# Inline process.env.* di bundle client. Hanya TILES_URL yang direferensikan src/client,
+# jadi jangan pernah baca env rahasia dari kode client.
+[serve.static]
+env = "inline"

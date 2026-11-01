@@ -1,6 +1,6 @@
 const LAYANAN = [
   { href: "/lapor", label: "Buat Laporan" },
-  { href: "/lacak", label: "Lacak Laporan" },
+  { href: "/log", label: "Laporan Saya" },
   { href: "/laporan", label: "Katalog Pengaduan" },
   { href: "/faq", label: "FAQ" },
 ];

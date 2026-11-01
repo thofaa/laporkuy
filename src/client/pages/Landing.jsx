@@ -8,11 +8,9 @@ import shadeUrl from "../assets/shade.png";
 const STATUS_TONES = {
   submitted: "waiting",
   needs_review: "waiting",
-  routed: "routed",
   accepted: "progress",
   in_progress: "progress",
   resolved: "resolved",
-  rejected: "rejected",
 };
 
 function formatDate(value) {
@@ -76,11 +74,32 @@ export default function Landing() {
           </p>
 
           <div className="hero__actions">
-            <a className="btn btn--primary btn--lg" href="/lapor">
+            <a
+              className="btn btn--primary btn--lg"
+              href="/lapor"
+              onClick={(event) => {
+                if (!localStorage.getItem("laporkuy_token")) {
+                  event.preventDefault();
+                  window.location.href = "/masuk";
+                }
+              }}
+            >
               Buat Laporan
             </a>
 
-            <a className="btn btn--outline btn--lg" href="/lacak">
+            <a
+              className="btn btn--outline btn--lg"
+              href="/log"
+              onClick={(event) => {
+                if (!localStorage.getItem("laporkuy_token")) {
+                  event.preventDefault();
+                  window.location.href = "/masuk";
+                } else {
+                  event.preventDefault();
+                  window.location.href = "/log";
+                }
+              }}
+            >
               Laporan Saya
             </a>
           </div>
