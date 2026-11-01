@@ -16,36 +16,38 @@ menindaklanjuti dengan status dan progres yang jelas.
 
 ## Cara Menjalankan
 
-### Opsi A — Docker (paling mudah, satu stack)
+### Opsi A (menggunakan docker)
 
 ```sh
-docker compose up -d --build
-DATABASE_URL="postgres://laporkuy:laporkuy@localhost:5432/laporkuy" bun run db:migrate
+docker compose up -d --build && DATABASE_URL="postgres://laporkuy:laporkuy@localhost:5432/laporkuy" bun run db:migrate
 ```
 
 Buka <http://localhost:8080>.
 
-### Opsi B — pengembangan lokal (Bun)
+### Opsi B (pengembangan lokal)
 
 Jalankan database/media lewat Docker, aplikasi lewat Bun:
 
 ```sh
 docker compose up -d db minio
-bun install
-DATABASE_URL="postgres://laporkuy:laporkuy@localhost:5432/laporkuy" bun run db:migrate
-bun run dev        # hot-reload di http://localhost:3001
 ```
-
-### Mode demo (data sementara, tanpa database)
 
 ```sh
 bun install
-bun run demo
 ```
 
-Data contoh hilang saat server dimulai ulang.
+```sh
+DATABASE_URL="postgres://laporkuy:laporkuy@localhost:5432/laporkuy" bun run db:migrate
+```
+
+```sh
+bun run dev        # hot-reload di http://localhost:3001
+```
 
 ### Akun contoh
+
+Akun di bawah dibuat otomatis oleh migrasi `20261103000000_seed_demo.sql` saat
+pertama kali `db:migrate` dijalankan.
 
 | Peran | Email | Kata sandi |
 |---|---|---|
@@ -80,8 +82,3 @@ Data contoh hilang saat server dimulai ulang.
 - Integrasi AI/penetapan dinas otomatis untuk laporan yang masuk ke antrean
   "Perlu ditinjau".
 - Pemberitahuan (notifikasi) aktif ke pengguna.
-
-## Dokumentasi
-
-Tangkapan layar per halaman dan per peran tersedia di folder
-[`dokumentasi/`](dokumentasi/) (indeks di `dokumentasi/README.md`).
