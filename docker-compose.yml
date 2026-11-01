@@ -1,0 +1,70 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: laporkuy
+      POSTGRES_PASSWORD: laporkuy
+      POSTGRES_DB: laporkuy
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: ghcr.io/chrislusf/seaweedfs:latest
+    restart: unless-stopped
+    # ponytail: service tetap bernama "minio" agar MINIO_ENDPOINT & nginx proxy tak berubah
+    command: server -s3 -s3.port=9000 -volume.max=10 -dir=/data
+    ports:
+      - "9000:9000"
+      - "8888:8888"
+    volumes:
+      - miniodata:/data
+
+  app:
+    image: oven/bun:1
+    restart: unless-stopped
+    working_dir: /app
+    command: bun --hot src/server/index.js
+    volumes:
+      - ./src:/app/src
+      - ./index.html:/app/index.html:ro
+      - ./package.json:/app/package.json:ro
+      - ./node_modules:/app/node_modules
+    ports:
+      - "3001:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://laporkuy:laporkuy@db:5432/laporkuy
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: laporkuy
+      MINIO_SECRET_KEY: laporkuy123
+    depends_on:
+      - db
+      - redis
+      - minio
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  miniodata:
