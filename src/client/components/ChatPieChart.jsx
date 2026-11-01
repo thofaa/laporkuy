@@ -45,7 +45,7 @@ export default function ChatPieChart() {
     return (
       <div className="chat-pie__tooltip">
         <strong>{payload[0].payload.label}</strong>
-        <span>{payload[0].value} percakapan</span>
+        <span>{payload[0].value} laporan</span>
       </div>
     );
   }
@@ -54,7 +54,7 @@ export default function ChatPieChart() {
     return (
       <div className="chat-pie chat-pie--skeleton" aria-busy="true">
         <span className="chat-pie__skeleton-circle" />
-        <span className="visually-hidden">Memuat data percakapan…</span>
+        <span className="visually-hidden">Memuat data laporan…</span>
       </div>
     );
   }
@@ -62,7 +62,7 @@ export default function ChatPieChart() {
   if (state.status === "error") {
     return (
       <div className="chat-pie chat-pie--notice" role="alert">
-        <p>Data percakapan gagal dimuat.</p>
+        <p>Data laporan gagal dimuat.</p>
         <button type="button" className="chat-pie__retry" onClick={load}>
           Coba lagi
         </button>
@@ -73,7 +73,7 @@ export default function ChatPieChart() {
   if (state.status === "empty") {
     return (
       <div className="chat-pie chat-pie--notice" role="status">
-        <p>Belum ada data percakapan.</p>
+        <p>Belum ada data laporan.</p>
       </div>
     );
   }
@@ -86,7 +86,7 @@ export default function ChatPieChart() {
     <div
       className="chat-pie"
       role="img"
-      aria-label={`Grafik distribusi status percakapan: ${summarize(state.data)}`}
+      aria-label={`Grafik distribusi status laporan: ${summarize(state.data)}`}
     >
       <ResponsiveContainer
         width="100%"
@@ -125,7 +125,7 @@ export default function ChatPieChart() {
       </ul>
 
       <table className="visually-hidden">
-        <caption>Distribusi status percakapan</caption>
+        <caption>Distribusi status laporan</caption>
         <thead>
           <tr>
             <th scope="col">Status</th>

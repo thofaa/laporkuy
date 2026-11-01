@@ -1,7 +1,7 @@
 const LAYANAN = [
   { href: "/lapor", label: "Buat Laporan" },
   { href: "/lacak", label: "Lacak Laporan" },
-  { href: "/kategori", label: "Kategori Laporan" },
+  { href: "/laporan", label: "Katalog Pengaduan" },
   { href: "/faq", label: "FAQ" },
 ];
 
@@ -52,20 +52,20 @@ export default function Footer() {
           <h2 className="footer__title">Kontak</h2>
           <ul>
             <li>
-              <a href="mailto:halo@laporkuy.malang.go.id">halo@laporkuy.malang.go.id</a>
+              <a href="/kontak">tim pengembang LaporKuy</a>
             </li>
             <li>
-              <a href="tel:+62341000000">(0341) 000-000</a>
+              <a href="/pemerintah">Dashboard pemerintah</a>
             </li>
-            <li>Senin–Jumat 08.00–16.00</li>
+            <li>Prototipe untuk demonstrasi lomba</li>
           </ul>
         </div>
       </div>
 
       <div className="container footer__bottom">
-        <p>© 2026 Laporkuy · Pemerintah Kota Malang</p>
+        <p>© 2026 LaporKuy · Proyek demonstrasi</p>
         <p className="footer__note">
-          Bukan kanal darurat. Untuk keadaan darurat hubungi 112.
+          Bukan kanal resmi pemerintah atau layanan darurat.
         </p>
       </div>
     </footer>

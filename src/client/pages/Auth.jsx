@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import OrbitCard from "../components/OrbitCard.jsx";
 import shadeUrl from "../assets/shade.png";
@@ -45,6 +45,15 @@ export default function Auth({ mode }) {
   const isLogin = mode === "login";
   const stageRef = useRef(null);
   const [error, setError] = useState("");
+  const [busy,setBusy] = useState(false);
+  const [demoAccounts,setDemoAccounts] = useState([]);
+  const formRef = useRef(null);
+  useEffect(() => { fetch("/api/meta").then(r => r.json()).then(r => setDemoAccounts(r.demo_accounts || [])).catch(() => {}); },[]);
+  function fillDemo(account) {
+    formRef.current.elements.email.value = account.email;
+    formRef.current.elements.password.value = account.password;
+    setError("");
+  }
 
   async function onSubmit(event) {
     event.preventDefault();
@@ -55,12 +64,13 @@ export default function Auth({ mode }) {
       return;
     }
     setError("");
-    const email = String(data.get(isLogin ? "username" : "email") ?? "").trim();
+    const email = String(data.get("email") ?? "").trim();
+    setBusy(true);
     try {
       const res = await fetch(isLogin ? "/api/auth/login" : "/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, full_name: data.get("full_name") }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -69,14 +79,15 @@ export default function Auth({ mode }) {
       }
       if (isLogin) {
         localStorage.setItem("laporkuy_token", json.token);
-        localStorage.setItem("laporkuy_user", JSON.stringify({ id: json.user?.id, email: json.user?.email, role: json.user?.role }));
-        window.location.href = "/lapor";
+        localStorage.setItem("laporkuy_user", JSON.stringify(json.user));
+        const isStaff = ["admin", "pemerintah"].includes(json.user.role);
+        window.location.href = isStaff ? "/pemerintah" : "/";
       } else {
         window.location.href = "/masuk";
       }
     } catch {
       setError("Tidak bisa menghubungi server.");
-    }
+    } finally { setBusy(false); }
   }
 
   return (
@@ -112,33 +123,11 @@ export default function Auth({ mode }) {
               : "Buat akun untuk mulai melapor."}
           </p>
 
-          <form className="auth__form" onSubmit={onSubmit} noValidate>
-            <label className="auth__label" htmlFor="auth-username">
-              {isLogin ? "Username atau email" : "Username"}
-            </label>
-            <input
-              className="auth__input"
-              id="auth-username"
-              name="username"
-              autoComplete="username"
-              required
-            />
-
-            {!isLogin && (
-              <>
-                <label className="auth__label" htmlFor="auth-email">
-                  Email
-                </label>
-                <input
-                  className="auth__input"
-                  id="auth-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                />
-              </>
-            )}
+          {isLogin && demoAccounts.length > 0 && <div className="lk-demo-accounts"><p>Isi formulir dengan akun demo:</p>{demoAccounts.map(a => <button type="button" key={a.email} onClick={() => fillDemo(a)}>{a.label}</button>)}</div>}
+          <form ref={formRef} className="auth__form" onSubmit={onSubmit}>
+            {!isLogin && <><label className="auth__label" htmlFor="auth-name">Nama lengkap</label><input className="auth__input" id="auth-name" name="full_name" autoComplete="name" maxLength={150} required /></>}
+            <label className="auth__label" htmlFor="auth-email">Email</label>
+            <input className="auth__input" id="auth-email" name="email" type="email" autoComplete="email" required />
 
             <label className="auth__label" htmlFor="auth-password">
               Password
@@ -148,6 +137,8 @@ export default function Auth({ mode }) {
               id="auth-password"
               name="password"
               type="password"
+              minLength={isLogin ? undefined : 8}
+              maxLength={256}
               autoComplete={isLogin ? "current-password" : "new-password"}
               required
             />
@@ -168,35 +159,16 @@ export default function Auth({ mode }) {
               </>
             )}
 
-            {isLogin && (
-              <div className="auth__row">
-                <a className="auth__link" href="/lupa-password">
-                  Lupa password?
-                </a>
-              </div>
-            )}
-
             {error && (
               <p className="auth__error" role="alert">
                 {error}
               </p>
             )}
 
-            <button className="btn btn--primary auth__submit" type="submit">
-              {isLogin ? "Masuk" : "Daftar"}
+            <button className="btn btn--primary auth__submit" type="submit" disabled={busy}>
+              {busy ? "Memproses..." : isLogin ? "Masuk" : "Daftar"}
             </button>
           </form>
-
-          <div className="auth__divider">
-            <span>atau</span>
-          </div>
-
-          <button type="button" className="auth__google">
-            <span className="auth__google-icon" aria-hidden="true">
-              G
-            </span>
-            {isLogin ? "Masuk dengan Google" : "Daftar dengan Google"}
-          </button>
 
           <p className="auth__alt">
             {isLogin ? (

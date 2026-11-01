@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { currentAccount } from "../lib/api.js";
 import { CircleUserRound } from "lucide-react";
 
 function authHeaders() {
@@ -7,7 +8,7 @@ function authHeaders() {
 }
 
 export default function ReportHeader() {
-  const user = JSON.parse(localStorage.getItem("laporkuy_user") ?? "null");
+  const user = currentAccount();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
 
@@ -58,6 +59,10 @@ export default function ReportHeader() {
           {open && (
             <div className="account-menu" role="menu">
               <span className="account-menu__email">{user?.email ?? "Pengguna"}</span>
+              <a className="lk-account-link" href="/lapor" role="menuitem">Buat laporan</a>
+              <a className="lk-account-link" href="/log" role="menuitem">Riwayat laporan</a>
+              {["admin","pemerintah"].includes(user?.role) && <a className="lk-account-link" href="/pemerintah" role="menuitem">Dashboard pemerintah</a>}
+              <a className="lk-account-link" href={["admin", "pemerintah"].includes(user?.role) ? "/pemerintah/katalog" : "/laporan"} role="menuitem">Katalog publik</a>
               <button
                 type="button"
                 className="account-menu__logout"

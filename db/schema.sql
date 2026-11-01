@@ -1,3 +1,4 @@
+-- Snapshot untuk database BARU. Untuk pembaruan gunakan bun run db:migrate.
 -- Laporkuy MVP schema
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -59,10 +60,6 @@ CREATE TABLE public.reports (
   contact_phone varchar(32),
   description_raw text NOT NULL,
   description_redacted text,
-  image_url text,
-  lat double precision NOT NULL,
-  lng double precision NOT NULL,
-  address text,
   category_id uuid REFERENCES public.kategori(id),
   dinas_id uuid REFERENCES public.dinas(id),
   urgency urgency_level,
@@ -172,3 +169,20 @@ CREATE INDEX idx_reports_category_id ON public.reports(category_id);
 CREATE INDEX idx_reports_created_at ON public.reports(created_at DESC);
 CREATE INDEX idx_report_status_history_report ON public.report_status_history(report_id, created_at);
 CREATE INDEX idx_report_attachments_report ON public.report_attachments(report_id);
+
+CREATE TABLE public.sessions (
+  token text PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Melengkapi basis data lama tanpa menghapus laporan yang sudah ada.
+alter table public.reports add column if not exists image_url text;
+alter table public.reports add column if not exists progress_percent integer not null default 0
+  check (progress_percent between 0 and 100);
+alter table public.reports add column if not exists is_public boolean not null default false;
+alter table public.reports add column if not exists public_title varchar(200);
+alter table public.reports add column if not exists public_location varchar(500);
+alter table public.report_status_history add column if not exists progress_percent integer not null default 0;
+alter table public.sessions add column if not exists expires_at timestamptz not null default (now() + interval '7 days');
+create index if not exists idx_reports_public on public.reports(moderation_status, is_public);
