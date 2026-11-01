@@ -1,6 +1,6 @@
 # Laporkuy
 
-Platform pelaporan layanan dan program publik Kota Malang. Warga cukup mengisi
+Platform pelaporan layanan dan program publik. Warga cukup mengisi
 satu laporan tanpa memilih dinas; instansi dan admin pemerintah memantau serta
 menindaklanjuti dengan status dan progres yang jelas.
 
