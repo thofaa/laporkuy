@@ -1469,6 +1469,7 @@ textarea.report-input {
   border: 1.2px solid var(--stone-line);
 }
 
+
 .report-map {
   position: relative;
   height: 320px;
@@ -1535,6 +1536,8 @@ textarea.report-input {
   line-height: 1.35;
   color: #1f1f1f;
 }
+
+
 
 .report-submit {
   justify-self: start;

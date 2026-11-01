@@ -1,0 +1,161 @@
+/* Pelengkap frontend: memakai tema monokrom dan tombol proyek awal. */
+/* Area kerja petugas: memakai tombol, warna, dan tipografi proyek yang sama. */
+.lk-staff { display:flex; min-height:100vh; color:#1e1e1e; background:#f6f6f6; }
+.lk-staff__sidebar { position:sticky; top:0; align-self:flex-start; width:256px; flex:0 0 256px; height:100vh; display:flex; flex-direction:column; padding:28px 20px; border-right:1px solid #d6d6d6; background:#fff; overflow-y:auto; }
+.lk-staff__brand-row { display:flex; align-items:center; justify-content:space-between; padding:0 12px; }
+.lk-staff__identity { margin:28px 0 30px; padding:20px 12px; border-top:1px solid #ddd; border-bottom:1px solid #ddd; display:grid; gap:7px; }
+.lk-staff__identity strong { font-size:15px; }
+.lk-staff__identity > span { font-size:12px; color:#626262; }
+.lk-staff__navigation { display:grid; gap:8px; }
+.lk-staff__navigation > p { padding:0 12px; margin-bottom:8px; }
+.lk-staff__navigation > a { display:flex; align-items:center; gap:12px; padding:14px 12px; border:1px solid transparent; font-size:14px; }
+.lk-staff__navigation > a:hover { background:#f1f1f1; border-color:#ccc; }
+.lk-staff__navigation > a[aria-current=page] { background:#1e1e1e; border-color:#1e1e1e; color:#fff; }
+.lk-staff__navigation svg { flex-shrink:0; }
+.lk-staff__account { margin-top:auto; padding:32px 12px 0; display:grid; gap:7px; overflow-wrap:anywhere; }
+.lk-staff__account strong { font-size:13px; }
+.lk-staff__account > span { font-size:12px; color:#626262; }
+.lk-staff__account .btn { margin-top:14px; font-size:12px; justify-content:flex-start; gap:10px; }
+.lk-staff__workspace { flex:1; min-width:0; display:flex; flex-direction:column; }
+.lk-staff__topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 36px; min-height:80px; background:#fff; border-bottom:1px solid #ddd; }
+.lk-staff__topbar p { font-size:13px; color:#626262; }
+.lk-staff__topbar p > span { margin:0 12px; color:#aaa; }
+.lk-staff__topbar strong { color:#222; }
+.lk-staff .lk-page.container { max-width:1280px; padding:40px 36px 48px; }
+.lk-staff .lk-intro { max-width:760px; }
+.lk-staff .lk-filters { padding:20px; background:#fff; border:1px solid #ddd; }
+.lk-staff .lk-stats { background:#fff; }
+.lk-staff__catalogue-note { padding:18px 20px; border:1px solid #d6d6d6; border-left:3px solid #333; background:#fff; font-size:13px; }
+.lk-staff__catalogue-note p { color:#626262; margin-top:6px; line-height:1.7; }
+.lk-staff__footer { padding:20px 36px; margin-top:auto; border-top:1px solid #ddd; color:#707070; font-size:12px; }
+.lk-staff__toggle { display:none; align-items:center; justify-content:center; width:40px; height:40px; border:1px solid #333; background:#fff; color:#222; cursor:pointer; }
+@media(min-width:901px) and (max-width:1250px) { .lk-staff .lk-cards { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:900px) {
+  .lk-staff { flex-direction:column; }
+  .lk-staff__sidebar { position:static; width:100%; flex:0 0 auto; height:auto; padding:16px 24px; border-right:0; border-bottom:1px solid #ddd; }
+  .lk-staff__brand-row { padding:0; }
+  .lk-staff__toggle { display:inline-flex; }
+  .lk-staff__identity { margin:14px 0 0; padding:12px 0 0; border-bottom:0; }
+  .lk-staff__identity > .lk-kicker, .lk-staff__identity > span { display:none; }
+  .lk-staff__navigation { display:none; margin-top:24px; }
+  .lk-staff__navigation--open { display:grid; }
+  .lk-staff__account { display:none; }
+  .lk-staff__navigation--open + .lk-staff__account { display:grid; padding:20px 12px 4px; }
+  .lk-staff__topbar { flex-wrap:wrap; padding:18px 24px; gap:10px; }
+  .lk-staff .lk-page.container { padding:30px 24px 40px; }
+  .lk-staff__footer { padding:20px 24px; }
+}
+@media(max-width:640px) {
+  .lk-staff__topbar p { font-size:12px; }
+  .lk-staff .lk-filters { padding:16px; }
+  .lk-staff .lk-title-row h1 { font-size:30px; }
+}
+.lk-demo { padding: 12px 24px; background:#fff4cb; border-bottom:1px solid #d5bc68; color:#29230f; font:13px/1.6 "IBM Plex Mono",monospace; text-align:center; }
+.lk-demo a,.lk-text-link { text-decoration:underline; text-underline-offset:4px; font-weight:600; }
+.lk-page.container { padding-top:52px; padding-bottom:64px; color:#1e1e1e; }
+.lk-page h1 { font-size:clamp(26px,4vw,40px); line-height:1.2; letter-spacing:-1px; }
+.lk-page h2 { font-size:22px; line-height:1.35; }
+.lk-kicker { font:11px/1.6 "IBM Plex Mono",monospace; letter-spacing:1.1px; color:#555; overflow-wrap:anywhere; }
+.lk-intro { max-width:780px; margin:18px 0 30px; color:#555; }
+.lk-title-row { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+.lk-muted { color:#626262; font-size:14px; margin:10px 0; }
+.lk-filters { display:flex; align-items:end; gap:16px; margin:24px 0; }
+.lk-filters label:first-child { flex:1; }
+.lk-filters label:last-child { min-width:210px; }
+.lk-filters label,.lk-edit-form label { display:grid; gap:7px; font-size:14px; font-weight:600; }
+.lk-filters input,.lk-filters select,.lk-edit-form input,.lk-edit-form select,.lk-edit-form textarea,.lk-track-form input { width:100%; border:1px solid #919191; background:#fff; color:#1e1e1e; padding:12px; border-radius:0; font:inherit; }
+.lk-notice { padding:18px; margin:20px 0; border:1px solid #bbb; background:#f5f5f5; color:#333; overflow-wrap:anywhere; }
+.lk-notice--error { background:#fff3f0; border-color:#bb5142; color:#7e281c; }
+.lk-cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.lk-card { padding:24px; border:1px solid #bbb; background:#fff; display:flex; flex-direction:column; gap:12px; min-width:0; }
+.lk-card h2,.lk-card h3 { font-size:21px; overflow-wrap:anywhere; }
+.lk-card p { overflow-wrap:anywhere; }
+.lk-card .lk-text-link { margin-top:auto; }
+.lk-card a:hover { text-decoration:underline; }
+.lk-badge { display:inline-block; border:1px solid #777; padding:5px 8px; font:11px/1.4 "IBM Plex Mono",monospace; width:fit-content; white-space:nowrap; background:#f5f5f5; color:#333; }
+.lk-badge--resolved { border-color:#2f6c48; background:#edf8ef; color:#245237; }
+.lk-badge--in_progress,.lk-badge--accepted { border-color:#46779c; background:#eff6fc; color:#264e6c; }
+.lk-badge--rejected { border-color:#a64738; background:#fff2ef; color:#7d3025; }
+.lk-progress { margin:20px 0; width:100%; }
+.lk-progress__label { display:flex; justify-content:space-between; gap:12px; margin-bottom:8px; font-size:12px; }
+.lk-progress progress { display:block; appearance:none; width:100%; height:9px; accent-color:#242424; border:0; background:#e5e5e5; }
+.lk-progress progress::-webkit-progress-bar { background:#e5e5e5; }
+.lk-progress progress::-webkit-progress-value { background:#242424; }
+.lk-panel { padding:28px; border:1px solid #bcbcbc; background:#fff; margin-top:24px; min-width:0; }
+.lk-body-text { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.8; margin:22px 0; }
+.lk-section { margin-top:40px; padding-top:24px; border-top:1px solid #d6d6d6; }
+.lk-section h2 { margin-bottom:20px; }
+.lk-photo { display:block; width:100%; max-height:400px; object-fit:contain; margin:20px 0; background:#eee; }
+.lk-timeline { padding:0 0 0 22px; margin:20px 0 0 8px; border-left:2px solid #bbb; list-style:none; }
+.lk-timeline li { position:relative; padding:0 0 28px 8px; }
+.lk-timeline li::before { content:""; position:absolute; left:-30px; top:6px; width:12px; height:12px; background:#333; border:2px solid #fff; border-radius:50%; }
+.lk-timeline time { display:inline-block; font-size:12px; color:#666; margin:6px 0; }
+.lk-timeline p { white-space:pre-wrap; overflow-wrap:anywhere; margin:12px 0; }
+.lk-track-form { max-width:700px; margin:30px 0; }
+.lk-track-form > label { display:block; font-size:14px; font-weight:600; margin-bottom:8px; }
+.lk-track-form > div { display:flex; gap:12px; }
+.lk-track-form input { flex:1; min-width:0; }
+.lk-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:1px solid #bbb; margin:24px 0 30px; }
+.lk-stats > div { display:grid; gap:12px; padding:22px; border-right:1px solid #bbb; }
+.lk-stats > div:last-child { border-right:0; }
+.lk-stats span { font-size:12px; color:#555; }
+.lk-stats strong { font:36px/1 "IBM Plex Mono",monospace; }
+.lk-table-wrap { width:100%; overflow-x:auto; border:1px solid #bbb; }
+.lk-table { border-collapse:collapse; width:100%; text-align:left; font-size:13px; }
+.lk-table th { padding:14px 16px; background:#ededed; color:#333; font-weight:600; }
+.lk-table td { padding:18px 16px; border-top:1px solid #ddd; vertical-align:middle; }
+.lk-table td strong { display:block; max-width:280px; overflow-wrap:anywhere; }
+.lk-table td small { display:block; color:#666; margin-top:7px; }
+.lk-table .btn { font-size:12px; }
+.lk-detail-layout { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:24px; align-items:start; }
+.lk-edit-form { display:grid; gap:20px; }
+.lk-edit-form fieldset { border:1px solid #ccc; margin:0; padding:16px; display:grid; gap:16px; min-width:0; }
+.lk-edit-form legend { font-size:14px; padding:0 8px; }
+.lk-checkbox { display:flex !important; flex-direction:row; align-items:flex-start; gap:10px; font-size:13px; line-height:1.7; font-weight:400 !important; }
+.lk-checkbox input { width:18px !important; height:18px; flex-shrink:0; margin-top:3px; accent-color:#222; }
+.lk-pager { display:flex; justify-content:center; align-items:center; gap:16px; margin:30px 0; font-size:13px; flex-wrap:wrap; }
+.lk-inline-button { border:0; background:transparent; padding:0; text-decoration:underline; font:inherit; color:inherit; cursor:pointer; }
+.lk-actions { display:flex; gap:12px; flex-wrap:wrap; }
+.lk-receipt { font:clamp(17px,3vw,25px)/1.6 "IBM Plex Mono",monospace; overflow-wrap:anywhere; margin:20px 0; }
+.lk-result-count { font-size:13px; color:#666; margin:16px 0; }
+.lk-account-link { display:block; padding:10px 14px; font-size:13px; }
+.lk-account-link:hover { background:#eee; }
+.lk-personal-list { display:grid; gap:20px; }
+.lk-report-layout .report-canvas { padding-right:24px; }
+.lk-report-nav { display:flex; flex-direction:column; padding:24px 16px; gap:12px; }
+.lk-report-nav h2 { font-size:15px; margin-bottom:12px; }
+.lk-report-nav a { padding:10px; border:1px solid transparent; font-size:13px; }
+.lk-report-nav a[aria-current=page] { border-color:#222; background:#222; color:#fff; }
+.lk-report-nav a:hover { border-color:#777; }
+.lk-info { max-width:760px; }
+.lk-demo-accounts { background:#fff6d7; padding:14px; margin:20px 0; font-size:12px; color:#333; }
+.lk-demo-accounts button { padding:8px 10px; margin:10px 6px 0 0; background:#fff; border:1px solid #777; cursor:pointer; font:inherit; }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+@media(max-width:1000px) { .lk-cards { grid-template-columns:repeat(2,minmax(0,1fr)); } .lk-detail-layout { grid-template-columns:1fr; } }
+@media(max-width:640px) {
+  .lk-page.container { padding-top:30px; padding-bottom:40px; }
+  .lk-cards { grid-template-columns:1fr; }
+  .lk-filters { flex-direction:column; align-items:stretch; }
+  .lk-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .lk-stats > div { border-bottom:1px solid #bbb; padding:16px; }
+  .lk-stats > div:nth-child(2) { border-right:0; }
+  .lk-stats > div:nth-child(n+3) { border-bottom:0; }
+  .lk-track-form > div { flex-direction:column; }
+  .lk-panel { padding:20px; }
+  .lk-report-layout { display:flex; flex-direction:column; }
+  .lk-report-layout .lk-report-nav { position:static; width:100%; height:auto; flex-direction:row; flex-wrap:wrap; padding:16px; }
+  .lk-report-nav h2 { width:100%; }
+  .lk-report-layout .report-canvas { margin-left:0; width:100%; padding:24px 16px; }
+}
+
+@media(min-width:641px) and (max-width:900px) { .lk-report-layout .report-canvas { width:100%; padding:24px; border-left:0; } .lk-report-nav { flex-direction:row; flex-wrap:wrap; } .lk-report-nav h2 { width:100%; } }
+
+@media(max-width:640px) {
+  .lk-table,.lk-table tbody,.lk-table tr,.lk-table td { display:block; width:100%; }
+  .lk-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .lk-table tr { padding:12px 0; border-bottom:2px solid #bbb; }
+  .lk-table tr:last-child { border-bottom:0; }
+  .lk-table td { border:0; padding:8px 16px; }
+  .lk-table td::before { content:attr(data-label); display:block; color:#666; font-size:11px; margin-bottom:6px; font-weight:400; }
+  .lk-table td strong { max-width:none; }
+}

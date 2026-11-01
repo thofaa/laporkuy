@@ -37,7 +37,6 @@ services:
       - ./src:/app/src
       - ./index.html:/app/index.html:ro
       - ./package.json:/app/package.json:ro
-      - ./bunfig.toml:/app/bunfig.toml:ro
       - ./node_modules:/app/node_modules
     ports:
       - "3001:3000"
@@ -49,10 +48,6 @@ services:
       MINIO_PORT: 9000
       MINIO_ACCESS_KEY: laporkuy
       MINIO_SECRET_KEY: laporkuy123
-      TILES_URL: /pmtiles/indonesia.pmtiles
-      NOMINATIM_URL: ${NOMINATIM_URL:-}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       - db
       - redis
