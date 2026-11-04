@@ -54,10 +54,6 @@ export default function Footer() {
             <li>
               <a href="/kontak">tim pengembang LaporKuy</a>
             </li>
-            <li>
-              <a href="/pemerintah">Dashboard pemerintah</a>
-            </li>
-            <li>Prototipe untuk demonstrasi lomba</li>
           </ul>
         </div>
       </div>

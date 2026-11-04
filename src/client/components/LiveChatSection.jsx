@@ -62,8 +62,6 @@ export default function LiveChatSection() {
               </OrbitCard>
             ))}
           </div>
-
-          <p className="live-chat__hint">Geser pesan untuk memindahkan</p>
         </div>
       </div>
     </section>

@@ -3,7 +3,6 @@ import { api } from "../lib/api.js";
 import { Notice, STATUSES } from "../components/ReportWidgets.jsx";
 import LiveChatSection from "../components/LiveChatSection.jsx";
 import reportImage from "../assets/report-placeholder.svg";
-import shadeUrl from "../assets/shade.png";
 
 const STATUS_TONES = {
   submitted: "waiting",
@@ -59,10 +58,7 @@ export default function Landing() {
 
   return (
     <>
-      <section
-        className="hero"
-        style={{ backgroundImage: `url(${shadeUrl})` }}
-      >
+      <section className="hero">
         <div className="container hero__inner">
           <p className="hero__eyebrow">Pemerintah Kota Malang</p>
 

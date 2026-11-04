@@ -44,13 +44,6 @@ export default function Header() {
 
   return (
     <>
-      <div className="topbar">
-        <div className="container topbar__inner">
-          <span className="topbar__dot" aria-hidden="true" />
-          {user ? `LaporKuy · ${accountLabel} · Layanan publik` : "Prototipe LaporKuy · Pelaporan layanan publik"}
-        </div>
-      </div>
-
       <header className="header">
         <div className="container header__inner">
           <a className="brand" href="/" aria-label="Laporkuy — beranda">
