@@ -1,8 +1,6 @@
 # Laporkuy
 
-Platform pelaporan layanan dan program publik. Warga cukup mengisi
-satu laporan tanpa memilih dinas; instansi dan admin pemerintah memantau serta
-menindaklanjuti dengan status dan progres yang jelas.
+Platform pelaporan layanan dan program publik. Warga cukup mengisi satu laporan tanpa ribet-ribet pilih dinas; AI akan bantu decision routing yang tepat untuk laporan yang dikirimkan pengguna; instansi menindaklanjuti dengan status dan progres yang jelas; dan admin pemerintah monitor agar routing benar-benar tepat sesuai dinas yang diinginkan pengguna.
 
 ## Tech Stack
 
@@ -11,8 +9,9 @@ menindaklanjuti dengan status dan progres yang jelas.
 | Frontend | React 19, recharts (grafik), mapLibre GL + react-map-gl + pmtiles/@protomaps/basemaps (peta) |
 | Backend | Bun (runtime), Elysia (HTTP), skema sesi & hash `scrypt`, `postgres.js` |
 | Database | PostgreSQL 16 |
-| File/media | MinIO / SeaweedFS (unggahan foto) |
-| Infra | Docker Compose, Nginx (reverse proxy + tile peta), Redis (tersedia, belum terpakai) |
+| File/media | MinIO / SeaweedFS |
+| Infra | Docker Compose, Nginx (reverse proxy + tile peta), Redis |
+| AI Decision | Jev (by TypeSafe AI) |
 
 ## Cara Menjalankan
 
@@ -76,9 +75,3 @@ pertama kali `db:migrate` dijalankan.
 - Menu **Tinjau Laporan** untuk admin (antrean laporan "perlu ditinjau").
 - Katalog publik (redacted) dan halaman informasi (FAQ, tentang, kontak).
 - Migrasi database lengkap, mode demo, dan akun contoh.
-
-**Rencana berikutnya:**
-
-- Integrasi AI/penetapan dinas otomatis untuk laporan yang masuk ke antrean
-  "Perlu ditinjau".
-- Pemberitahuan (notifikasi) aktif ke pengguna.
