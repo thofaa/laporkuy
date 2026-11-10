@@ -6,6 +6,7 @@ import { createDemoStore } from "./demo-store.js";
 import { createPostgresStore } from "./postgres-store.js";
 import { saveImage } from "./storage.js";
 import { canManage, publicReport, validateUpdate } from "../shared/reports.js";
+import { enqueueJob } from "./queue.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const tokenOf = request => request.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1] ?? "";
@@ -79,6 +80,8 @@ export function createApi({ demo = Bun.env.DEMO_MODE === "true", store = demo ? 
         lat, lng, address,
       });
       set.status = 201;
+      // Fire-and-forget ke queue AI Jev; pelapor tidak menunggu hasil routing.
+      if (!demo) enqueueJob(report.id).catch(e => console.error("queue submit gagal:", e.message));
       return { report };
     })
     .post("/upload-image", async ({ request, set }) => {
@@ -216,6 +219,18 @@ export function createApi({ demo = Bun.env.DEMO_MODE === "true", store = demo ? 
       if (!message || message.length > 2000) return fail(set, 400, "Tulis masukan 1–2.000 karakter.");
       const feedback = await store.addFeedback(row.id, user, message);
       return { feedback, feedbacks: await store.feedbacks(row.id, user.id) };
+    })
+    .post("/government/reports/:id/assign-dinas", async ({ request, params, body, set }) => {
+      const user = await currentUser(request);
+      if (user?.role !== "admin") return fail(set, 403, "Hanya admin yang dapat menetapkan dinas.");
+      if (!UUID.test(params.id)) return fail(set,404,"Laporan tidak ditemukan.");
+      const row = await store.get(params.id);
+      if (!row) return fail(set,404,"Laporan tidak ditemukan.");
+      const dinasId = body?.dinas_id || null;
+      if (dinasId && !(await store.dinas()).some(d => d.id === dinasId)) return fail(set,400,"Dinas tidak valid.");
+      const updated = await store.assignDinas(params.id, dinasId, user.id);
+      if (!updated) return fail(set,404,"Laporan tidak ditemukan.");
+      return { report: await store.get(params.id), history: await store.history(params.id) };
     })
     .patch("/government/reports/:id", async ({ request, params, body, set }) => {
       const user = await currentUser(request);

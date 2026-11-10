@@ -68,6 +68,15 @@ export function createDemoStore() {
       return row;
     },
     async dinas() { return dinas; },
+    async assignDinas(id, dinasId, adminId) {
+      const row = reports.get(id);
+      if (!row) return null;
+      const newStatus = row.status === "needs_review" && dinasId ? "routed" : row.status;
+      row.dinas_id = dinasId; row.status = newStatus;
+      const at = new Date().toISOString();
+      histories.get(id).push({ id: randomUUID(), from_status: row.status, to_status: newStatus, actor_id: adminId, actor_type: "admin", note: "Admin menetapkan dinas tujuan; laporan dirutekan.", progress_percent: 0, created_at: at });
+      return decorate(row);
+    },
     async update(id, input, actor, expected) {
       const row = reports.get(id);
       if (!row || (row.updated_at ?? row.submitted_at) !== expected) return null;

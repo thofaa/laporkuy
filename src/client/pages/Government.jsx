@@ -6,6 +6,7 @@ import GovernmentCharts from "../components/GovernmentCharts.jsx";
 function GovernmentDetail({ id, user, onSaved }) {
   const [result,setResult] = useState(null);
   const [form,setForm] = useState({});
+  const [dinasList,setDinasList] = useState([]);
   const [error,setError] = useState("");
   const [success,setSuccess] = useState("");
   const [busy,setBusy] = useState(false);
@@ -27,6 +28,12 @@ function GovernmentDetail({ id, user, onSaved }) {
     }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
   },[id,retry]);
+  useEffect(() => {
+    if (!admin) return;
+    let active = true;
+    api("/government/dinas").then(r => { if (active) setDinasList(r.data); }).catch(() => {});
+    return () => { active = false; };
+  },[admin,id]);
   const change = (name,value) => setForm(f => ({ ...f,[name]: value }));
   async function save(event) {
     event.preventDefault(); setBusy(true); setError(""); setSuccess("");
@@ -43,6 +50,14 @@ function GovernmentDetail({ id, user, onSaved }) {
       setResult(prev => ({ ...prev, feedbacks: r.feedbacks }));
     } finally { setFeedbackBusy(false); }
   }
+  async function assignDinas(event) {
+    event.preventDefault(); setBusy(true); setError(""); setSuccess("");
+    try {
+      const r = await api(`/government/reports/${id}/assign-dinas`, { method:"POST", body: JSON.stringify({ dinas_id: form.dinas_id || null }) });
+      apply(r); setSuccess("Dinas tujuan diperbarui. Laporan langsung tampil di dashboard dinas terkait."); onSaved();
+    } catch(e) { setError(e.message); }
+    finally { setBusy(false); }
+  }
   return <><div className="lk-detail-topbar">
     <a className="lk-text-link" href="/pemerintah/daftar">← Kembali ke daftar laporan</a>
   </div>
@@ -56,7 +71,13 @@ function GovernmentDetail({ id, user, onSaved }) {
         <label>Progres (%)<input name="progress_percent" type="number" min="0" max="100" required value={form.progress_percent} onChange={e => change("progress_percent",e.target.value)} /></label>
         <label>Tanggapan untuk pelapor<textarea name="note" rows={5} required maxLength={3000} value={form.note} onChange={e => change("note",e.target.value)} placeholder="Jelaskan tindakan yang sudah dilakukan dan langkah berikutnya." /></label>
         <button className="btn btn--primary" disabled={busy}>{busy ? "Menyimpan..." : "Simpan tanggapan"}</button>
-      </form>} feedbacks={result.feedbacks} onFeedback={postFeedback} feedbackBusy={feedbackBusy} tab={tab} onTab={setTab} />
+        </form>} feedbacks={result.feedbacks} onFeedback={postFeedback} feedbackBusy={feedbackBusy} tab={tab} onTab={setTab} />
+      {admin && <form className="lk-edit-form lk-follow-up" onSubmit={assignDinas}>
+        <h3>Penetapan Dinas Tujuan</h3>
+        {success && <Notice>{success}</Notice>}
+        <label htmlFor="dinas-assign">Dinas tujuan<select id="dinas-assign" value={form.dinas_id} onChange={e => change("dinas_id", e.target.value)}><option value="">Belum ditetapkan</option>{dinasList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
+        <button className="btn btn--primary" disabled={busy}>{busy ? "Menyimpan..." : "Simpan dinas"}</button>
+      </form>}
     </article></div>}
   </>;
 }
