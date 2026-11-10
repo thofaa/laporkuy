@@ -16,6 +16,8 @@ export function createDemoStore() {
   const reports = new Map();
   const histories = new Map();
   const feedbacks = new Map();
+  const reroutes = new Map();
+  const faq = new Map();
   const examples = [
     ["LPK-DEMO0001", "Jalan berlubang di Soekarno Hatta", "Lowokwaru, Kota Malang", "Lubang di badan jalan membahayakan pengendara saat hujan.", "in_progress", 45, 0],
     ["LPK-DEMO0002", "Sampah menumpuk di sekitar TPS", "Klojen, Kota Malang", "Pengangkutan sampah perlu ditingkatkan agar akses warga kembali bersih.", "resolved", 100, 1],
@@ -37,7 +39,18 @@ export function createDemoStore() {
     histories.set(id, [{ id: randomUUID(), to_status: "submitted", note: "Laporan diterima oleh sistem.", progress_percent: 0, created_at: date }]);
     if (status !== "submitted") histories.get(id).push({ id: randomUUID(), to_status: status, note: status === "resolved" ? "Penanganan selesai dan sudah diperiksa petugas." : "Petugas sudah memeriksa laporan dan menyiapkan penanganan.", progress_percent: progress, created_at: new Date().toISOString() });
   });
-  const decorate = (row) => row && { ...row, dinas_name: dinas.find(d => d.id === row.dinas_id)?.name ?? null };
+  const addFeedbackSync = (reportId, user, message, at) => {
+    if (!feedbacks.has(reportId)) feedbacks.set(reportId, []);
+    feedbacks.get(reportId).push({ id: randomUUID(), sender_id: user.id, message, sender_name: user.full_name ?? null, sender_role: user.role, created_at: at });
+  };
+  const decorate = (row) => row && { ...row, dinas_name: dinas.find(d => d.id === row.dinas_id)?.name ?? null, pending_routing: pendingOf(row.id) };
+  const pendingOf = (id) => {
+    const r = reroutes.get(id);
+    if (!r || r.status !== "pending") return null;
+    const target = dinas.find(d => d.id === r.requested_dinas_id);
+    return { id: r.request_id, requested_dinas_id: r.requested_dinas_id, requested_dinas_name: target?.name ?? null,
+      requested_by: r.requested_by, previous_status: r.previous_status, note: r.note, created_at: r.created_at };
+  };
   return {
     async userByEmail(email) { return users.find(u => u.email === email); },
     async register(email, password_hash, full_name) {
@@ -68,6 +81,62 @@ export function createDemoStore() {
       return row;
     },
     async dinas() { return dinas; },
+    async askFaqQuestion(userId, question) {
+      const row = { id: randomUUID(), user_id: userId, question, answer: null, answered_by: null, answered_at: null, status: "open", created_at: new Date().toISOString() };
+      if (!faq.has(userId)) faq.set(userId, []);
+      faq.get(userId).push(row);
+      return row;
+    },
+    async faqQuestionsByUser(userId) { return faq.get(userId) ?? []; },
+    async faqQuestions(status) {
+      const all = [...faq.values()].flat();
+      const rows = all.map(q => ({ ...q, user_name: users.find(u => u.id === q.user_id)?.full_name ?? null }));
+      return status ? rows.filter(q => q.status === status) : rows;
+    },
+    async answerFaqQuestion(id, adminId, answer) {
+      for (const list of faq.values()) {
+        const q = list.find(x => x.id === id);
+        if (q) { q.answer = answer; q.answered_by = adminId; q.answered_at = new Date().toISOString(); q.status = "answered"; return q; }
+      }
+      return null;
+    },
+    async pendingRoutingRequest(reportId) { return pendingOf(reportId); },
+    async requestReroute(reportId, user, dinasId, note) {
+      const row = reports.get(reportId);
+      if (!row) return null;
+      const existing = reroutes.get(reportId);
+      if (existing?.status === "pending") return { error: "already_pending" };
+      const target = dinas.find(d => d.id === dinasId);
+      if (!target) return { error: "invalid_dinas" };
+      const at = new Date().toISOString();
+      const requestId = randomUUID();
+      reroutes.set(reportId, { request_id: requestId, requested_dinas_id: dinasId, requested_by: user.id, previous_status: row.status, note, status: "pending", created_at: at });
+      const fromStatus = row.status;
+      row.status = "needs_review"; row.updated_at = at;
+      const message = note ? `Permintaan perutean ke ${target.name}. ${note}` : `Meminta perutean ke ${target.name}.`;
+      histories.get(reportId).push({ id: randomUUID(), from_status: fromStatus, to_status: "needs_review", actor_id: user.id, actor_type: "user", note: message, progress_percent: 0, created_at: at });
+      addFeedbackSync(reportId, user, message, at);
+      return { ok: true };
+    },
+    async decideReroute(reportId, requestId, admin, decision, note) {
+      const r = reroutes.get(reportId);
+      if (!r || r.request_id !== requestId || r.status !== "pending") return { error: "no_pending" };
+      const row = reports.get(reportId);
+      if (!row) return { error: "not_found" };
+      const target = dinas.find(d => d.id === r.requested_dinas_id);
+      const fromStatus = row.status;
+      const at = new Date().toISOString();
+      const message = note ? `${decision === "approve" ? "Perutean ke " : "Permintaan perutean ke "}${target?.name ?? "dinas tujuan"} ${decision === "approve" ? "disetujui admin." : "ditolak admin."} ${note}` : `${decision === "approve" ? "Perutean ke " : "Permintaan perutean ke "}${target?.name ?? "dinas tujuan"} ${decision === "approve" ? "disetujui admin." : "ditolak admin."}`;
+      if (decision === "approve") {
+        r.status = "approved"; row.dinas_id = r.requested_dinas_id; row.status = "routed"; row.routed_at = at;
+      } else {
+        r.status = "rejected"; row.status = r.previous_status;
+      }
+      row.updated_at = at;
+      histories.get(reportId).push({ id: randomUUID(), from_status: fromStatus, to_status: row.status, actor_id: admin.id, actor_type: "admin", note: message, progress_percent: row.progress_percent ?? 0, created_at: at });
+      addFeedbackSync(reportId, admin, message, at);
+      return { report: decorate(row), previousStatus: r.previous_status };
+    },
     async assignDinas(id, dinasId, adminId) {
       const row = reports.get(id);
       if (!row) return null;

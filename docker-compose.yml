@@ -57,6 +57,8 @@ services:
       JEV_REVIEW_NOUL: ${JEV_REVIEW_NOUL:-0.55}
       JEV_DINAS_MIN_TOP: ${JEV_DINAS_MIN_TOP:-0.5}
       JEV_DINAS_MIN_MAPPED: ${JEV_DINAS_MIN_MAPPED:-0.3}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

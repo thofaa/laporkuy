@@ -81,11 +81,7 @@ export function MapPin({ longitude, latitude, zoom = 15 }) {
 export default function MapView({ value, onChange }) {
   const mapRef = useRef(null);
   const abortRef = useRef(null);
-  const [query, setQuery] = useState("");
-  const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState("");
   const [popupOpen, setPopupOpen] = useState(true);
 
   useLayoutEffect(() => {
@@ -102,8 +98,7 @@ export default function MapView({ value, onChange }) {
     };
   }, []);
 
-  function handleMapClick(event) {
-    const { lng, lat } = event.lngLat;
+  function selectPoint(lng, lat) {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -111,8 +106,6 @@ export default function MapView({ value, onChange }) {
     onChange({ lng, lat, label: "" });
     setPopupOpen(true);
     setLocating(true);
-    setNotFound(false);
-    setError("");
 
     reverseGeocode(lng, lat, controller.signal)
       .then((label) => {
@@ -120,66 +113,37 @@ export default function MapView({ value, onChange }) {
       })
       .catch((err) => {
         if (err.name === "AbortError") return;
-        setError(
-          err.message === "not_configured"
-            ? "Layanan alamat belum dikonfigurasi."
-            : "Gagal mengambil alamat dari titik ini.",
-        );
+        console.warn("[reverse-geocode] gagal:", err?.message);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLocating(false);
       });
   }
 
-  async function handleSearch(event) {
-    event?.preventDefault?.();
-    const q = query.trim();
-    if (!q || searching) return;
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setSearching(true);
-    setNotFound(false);
-    setError("");
-
-    try {
-      const res = await fetch(
-        `${NOMINATIM_PATH}/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=1&countrycodes=id&accept-language=id`,
-        { signal: controller.signal },
-      );
-      if (res.status === 503) throw new Error("not_configured");
-      if (!res.ok) throw new Error("search_failed");
-      const json = await res.json();
-      const hit = Array.isArray(json) ? json[0] : null;
-      if (!hit) {
-        setNotFound(true);
-        return;
-      }
-      const point = {
-        lng: Number(hit.lon),
-        lat: Number(hit.lat),
-        label: hit.display_name ?? "",
-      };
-      onChange(point);
-      setPopupOpen(true);
-      mapRef.current?.flyTo({ center: [point.lng, point.lat], zoom: 16 });
-    } catch (err) {
-      if (err.name === "AbortError") return;
-      setError(
-        err.message === "not_configured"
-          ? "Layanan alamat belum dikonfigurasi."
-          : "Gagal mencari lokasi. Coba lagi.",
-      );
-    } finally {
-      if (!controller.signal.aborted) setSearching(false);
-    }
+  function handleMapClick(event) {
+    selectPoint(event.lngLat.lng, event.lngLat.lat);
   }
 
-  const status = notFound
-    ? "Lokasi tidak ditemukan."
-    : error || (locating ? "Mengambil alamat..." : "");
+  // Allow location: ambil koordinat saja (tanpa reverse-geocode alamat).
+  function handleGeolocate(event) {
+    const { longitude, latitude } = event.coords;
+    abortRef.current?.abort();
+    onChange({ lng: longitude, lat: latitude, label: "" });
+    setPopupOpen(true);
+    setLocating(false);
+  }
+
+  function handleGeolocateError(event) {
+    const err = event?.error ?? event;
+    console.warn("[geolocate] gagal:", {
+      code: err?.code,
+      message: err?.message,
+      secureContext: typeof window !== "undefined" ? window.isSecureContext : undefined,
+      hasGeolocation: typeof navigator !== "undefined" && !!navigator.geolocation,
+    });
+  }
+
+  const status = locating ? "Mengambil alamat..." : "";
 
   return (
     <div className="report-map">
@@ -212,31 +176,14 @@ export default function MapView({ value, onChange }) {
         )}
 
         <NavigationControl position="bottom-right" />
-        <GeolocateControl position="bottom-right" trackUserLocation />
+        <GeolocateControl
+          position="bottom-right"
+          onGeolocate={handleGeolocate}
+          onError={handleGeolocateError}
+        />
       </Map>
 
       <div className="report-map__search">
-        <div className="report-map__form">
-          <input
-            className="report-input report-map__input"
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") handleSearch(event);
-            }}
-            placeholder="Cari lokasi, mis. Jl. Ijen, Malang"
-            aria-label="Cari lokasi"
-          />
-          <button
-            className="btn btn--primary"
-            type="button"
-            onClick={handleSearch}
-            disabled={searching || !query.trim()}
-          >
-            {searching ? "Mencari..." : "Cari"}
-          </button>
-        </div>
         {status && (
           <p className="report-map__status" role="status" aria-live="polite">
             {status}

@@ -53,7 +53,7 @@ export function FeedbackThread({ items = [], onPost, busy = false, placeholder =
     </form>}
   </section>;
 }
-export function PrivateReport({ report, history, followUp, feedbacks = [], onFeedback, feedbackBusy, tab = "history", onTab }) {
+export function PrivateReport({ report, history, followUp, feedbacks = [], onFeedback, feedbackBusy, tab = "history", onTab, reroute }) {
   const content = parseReport(report.description_raw);
   const hasCoords = Number.isFinite(Number(report?.lat)) && Number.isFinite(Number(report?.lng));
   const discuss = Boolean(onFeedback);
@@ -61,6 +61,7 @@ export function PrivateReport({ report, history, followUp, feedbacks = [], onFee
     { id: "history", label: "Riwayat Penanganan" },
     ...(followUp ? [{ id: "followup", label: "Tindak Lanjut Laporan" }] : []),
     { id: "discussion", label: "Diskusi Penanganan" },
+    ...(reroute ? [{ id: "reroute", label: "Rutekan Balik", danger: true }] : []),
   ];
   return <div className="lk-private" id="report-detail"><div className="lk-title-row"><div><p className="lk-kicker">{report.ticket_number}</p><h2>{content.title}</h2></div><StatusBadge status={report.status} /></div>
     <p className="lk-muted">{content.location || "Lokasi belum dicantumkan"} · {dateText(report.submitted_at)}</p>
@@ -70,11 +71,12 @@ export function PrivateReport({ report, history, followUp, feedbacks = [], onFee
     {hasCoords && <div className="report-detail__map"><MapPin longitude={Number(report.lng)} latitude={Number(report.lat)} /></div>}
     <p className="lk-body-text">{content.description}</p>
     {discuss && <div className="lk-detail-tabs" role="tablist" aria-label="Bagian laporan">
-      {tabs.map(t => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={`lk-detail-tabs__button${tab === t.id ? " lk-detail-tabs__button--active" : ""}`} onClick={() => onTab?.(t.id)}>{t.label}</button>)}
+      {tabs.map(t => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={`lk-detail-tabs__button${t.danger ? " lk-detail-tabs__reroute" : ""}${tab === t.id ? (t.danger ? " lk-detail-tabs__reroute--active" : " lk-detail-tabs__button--active") : ""}`} onClick={() => onTab?.(t.id)}>{t.label}</button>)}
     </div>}
-    {tab === "discussion" && discuss
-      ? <FeedbackThread items={feedbacks} onPost={onFeedback} busy={feedbackBusy} />
-      : tab === "followup" && followUp ? followUp
-        : <Timeline history={history} />}
+    {tab === "reroute" && reroute ? reroute.render()
+      : tab === "discussion" && discuss
+        ? <FeedbackThread items={feedbacks} onPost={onFeedback} busy={feedbackBusy} />
+        : tab === "followup" && followUp ? followUp
+          : <Timeline history={history} />}
   </div>;
 }

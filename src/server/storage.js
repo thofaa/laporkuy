@@ -6,13 +6,19 @@ const demoImages = new Map();
 const BUCKET = "laporkuy";
 let client;
 function storage() {
-  return client ??= new Client({
-    endPoint: Bun.env.MINIO_ENDPOINT ?? "localhost",
-    port: Number(Bun.env.MINIO_PORT ?? 9000),
-    useSSL: Bun.env.MINIO_USE_SSL === "true",
-    accessKey: Bun.env.MINIO_ACCESS_KEY ?? "laporkuy",
-    secretKey: Bun.env.MINIO_SECRET_KEY ?? "laporkuy123",
-  });
+  if (!client) {
+    const accessKey = Bun.env.MINIO_ACCESS_KEY;
+    const secretKey = Bun.env.MINIO_SECRET_KEY;
+    if (!accessKey || !secretKey) throw new Error("MINIO_ACCESS_KEY/MINIO_SECRET_KEY belum diatur di environment.");
+    client = new Client({
+      endPoint: Bun.env.MINIO_ENDPOINT ?? "localhost",
+      port: Number(Bun.env.MINIO_PORT ?? 9000),
+      useSSL: Bun.env.MINIO_USE_SSL === "true",
+      accessKey,
+      secretKey,
+    });
+  }
+  return client;
 }
 export async function saveImage(file, demo) {
   const ext = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" }[file.type];

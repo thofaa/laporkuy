@@ -52,7 +52,7 @@ export default function Footer() {
           <h2 className="footer__title">Kontak</h2>
           <ul>
             <li>
-              <a href="/kontak">tim pengembang LaporKuy</a>
+              <a href="/kontak">Tim Pengembang LaporKuy</a>
             </li>
           </ul>
         </div>

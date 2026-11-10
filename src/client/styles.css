@@ -376,7 +376,7 @@ a {
 }
 
 .hero__actions .btn--outline {
-  background: transparent;
+  background: #ffffff;
   color: var(--red);
 }
 
@@ -1442,6 +1442,12 @@ a {
   gap: 0.4rem;
 }
 
+.report-field__hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #626262;
+}
+
 .report-label {
   font-size: 0.72rem;
   font-weight: 600;
@@ -1499,17 +1505,6 @@ textarea.report-input {
   display: grid;
   gap: 0.35rem;
   pointer-events: none;
-}
-
-.report-map__form {
-  display: flex;
-  gap: 0.4rem;
-  max-width: 420px;
-  pointer-events: auto;
-}
-
-.report-map__input {
-  background: #ffffff;
 }
 
 .report-map__status,
