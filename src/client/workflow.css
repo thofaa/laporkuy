@@ -3,6 +3,49 @@
 .lk-detail-tabs__button { border:1px solid #d6d6d6; background:#fff; color:#1e1e1e; padding:10px 16px; font:inherit; font-size:14px; cursor:pointer; }
 .lk-detail-tabs__button--active { background:#1e1e1e; color:#fff; border-color:#1e1e1e; }
 
+/* Rutekan Balik: tombol merah di sisi kanan tab */
+.lk-detail-tabs__reroute { margin-left:auto; border:1px solid #c62828; background:#c62828; color:#fff; padding:10px 16px; font:inherit; font-size:14px; cursor:pointer; }
+.lk-detail-tabs__reroute:hover { background:#a32020; }
+.lk-detail-tabs__reroute--active { background:#fff; color:#c62828; }
+
+/* Panel Diskusi Perutean di bagian bawah detail laporan */
+.lk-reroute-panel { margin-top:24px; padding:20px; border:1px solid #e3b8b8; background:#fdf5f5; border-radius:8px; }
+.lk-reroute-panel h3 { margin:0 0 8px; font-size:16px; }
+.lk-reroute-panel--pending { border-color:#d6d6d6; background:#fafafa; }
+.lk-reroute-decision { border-color:#e3b8b8; background:#fdf5f5; }
+.lk-reroute-decision p { margin:0 0 10px; }
+.lk-pending-badge { display:inline-block; margin:6px 0 0; padding:3px 8px; border-radius:999px; background:#c62828; color:#fff; font-size:12px; }
+
+/* Halaman syarat & privasi */
+.lk-legal { max-width: 720px; }
+.lk-legal__updated { margin: 6px 0 20px; font-size: 13px; color: #6b6b6b; }
+.lk-legal__intro { margin: 0 0 24px; padding: 16px 18px; border-left: 4px solid #1e1e1e; background: #f6f6f6; border-radius: 0 8px 8px 0; }
+.lk-legal__intro p { margin: 0; }
+.lk-legal-section { margin: 22px 0; padding: 18px 20px; border: 1px solid #e2e2e2; background: #fff; border-radius: 8px; scroll-margin-top: 16px; }
+.lk-legal-section h2 { font-size: 17px; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid #ececec; }
+.lk-legal-section p { margin: 0 0 10px; line-height: 1.6; }
+.lk-legal-section p:last-child { margin-bottom: 0; }
+.lk-legal-section ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.55; }
+.lk-legal__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 28px; padding-top: 20px; border-top: 1px solid #d6d6d6; }
+
+/* FAQ: daftar pertanyaan umum + tanya admin */
+.lk-faq-list { display:grid; gap:10px; margin:20px 0 32px; }
+.lk-faq-item { border:1px solid #d6d6d6; background:#fff; border-radius:8px; }
+.lk-faq-item summary { padding:14px 16px; font-weight:600; cursor:pointer; }
+.lk-faq-item p { margin:0; padding:0 16px 14px; color:#4a4a4a; }
+.lk-faq-ask { margin-top:28px; padding-top:24px; border-top:1px solid #d6d6d6; }
+.lk-faq-ask h2 { margin:0 0 6px; font-size:18px; }
+.lk-faq-mine { margin-top:24px; display:grid; gap:12px; }
+.lk-faq-mine h3 { margin:0 0 4px; font-size:16px; }
+.lk-faq-q { border:1px solid #e2e2e2; background:#fff; border-radius:8px; padding:12px 14px; display:grid; gap:8px; }
+.lk-faq-q--open { border-color:#c62828; }
+.lk-faq-q__meta { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.lk-faq-q__meta time { color:#6b6b6b; font-size:12px; }
+.lk-faq-q__answer { margin:0; padding:10px 12px; background:#f2f2f2; border-radius:6px; }
+.lk-faq-admin { margin-top:24px; }
+.lk-faq-admin .lk-faq-q { margin-bottom:12px; }
+.lk-faq-answered summary { cursor:pointer; font-weight:600; margin:12px 0 8px; }
+
 /* Pelengkap frontend: memakai tema monokrom dan tombol proyek awal. */
 /* Area kerja petugas: memakai tombol, warna, dan tipografi proyek yang sama. */
 .lk-staff { display:flex; min-height:100vh; color:#1e1e1e; background:#f6f6f6; }
@@ -261,7 +304,7 @@
 .lk-resolution-request h2 { margin: 0 0 8px; font-size: 18px; }
 .lk-resolution-request p { margin: 0 0 14px; color: #3d3d3d; }
 .lk-resolution-hint { margin: 8px 0 0; font-size: 13px; font-weight: 600; color: #8a5a00; }
-.lk-feedback { margin-top: 28px; border-top: 1px solid #e2e2e2; padding-top: 20px; }
+.lk-feedback { margin-top: 40px; border-top: 1px solid #e2e2e2; padding-top: 20px; }
 .lk-feedback__list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 12px; }
 .lk-feedback__item { max-width: 82%; justify-self: start; border: 1px solid #e2e2e2; background: #fff; padding: 10px 12px; }
 .lk-feedback__item--mine { justify-self: end; background: #f2f2f2; border-color: #c7c7c7; }

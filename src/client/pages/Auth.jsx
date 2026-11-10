@@ -47,8 +47,9 @@ export default function Auth({ mode }) {
   const [error, setError] = useState("");
   const [busy,setBusy] = useState(false);
   const [demoAccounts,setDemoAccounts] = useState([]);
+  const [googleEnabled,setGoogleEnabled] = useState(false);
   const formRef = useRef(null);
-  useEffect(() => { fetch("/api/meta").then(r => r.json()).then(r => setDemoAccounts(r.demo_accounts || [])).catch(() => {}); },[]);
+  useEffect(() => { fetch("/api/meta").then(r => r.json()).then(r => { setDemoAccounts(r.demo_accounts || []); setGoogleEnabled(Boolean(r.google_enabled)); }).catch(() => {}); },[]);
   function fillDemo(account) {
     formRef.current.elements.email.value = account.email;
     formRef.current.elements.password.value = account.password;
@@ -178,9 +179,10 @@ export default function Auth({ mode }) {
             type="button"
             className="auth__google"
             disabled={busy}
-            onClick={() =>
-              setError("Login dengan Google belum tersedia.")
-            }
+            onClick={() => {
+              if (!googleEnabled) { setError("Masuk dengan Google belum dikonfigurasi."); return; }
+              window.location.href = "/api/auth/google";
+            }}
           >
               <img
                 src="https://developers.google.com/identity/images/g-logo.png"

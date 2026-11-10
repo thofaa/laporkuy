@@ -10,6 +10,11 @@ export function PersonalReport({ id }) {
   const [actionError, setActionError] = useState("");
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [tab, setTab] = useState("history");
+  const [rerouteDinas, setRerouteDinas] = useState("");
+  const [rerouteNote, setRerouteNote] = useState("");
+  const [rerouteBusy, setRerouteBusy] = useState(false);
+  const [rerouteError, setRerouteError] = useState("");
+  const [dinasList, setDinasList] = useState([]);
   useEffect(() => {
     let active = true;
     setState({ status: "loading" });
@@ -17,6 +22,11 @@ export function PersonalReport({ id }) {
       .catch(e => { if (active) setState({ status: "error", error: e.message }); });
     return () => { active = false; };
   }, [id, retry]);
+  useEffect(() => {
+    let active = true;
+    api("/dinas").then(r => { if (active) setDinasList(r.data); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
   async function respond(action) {
     setBusy(action); setActionError("");
     try {
@@ -32,7 +42,29 @@ export function PersonalReport({ id }) {
       setState(s => ({ ...s, feedbacks: r.feedbacks }));
     } finally { setFeedbackBusy(false); }
   }
+  async function submitReroute(event) {
+    event.preventDefault(); setRerouteBusy(true); setRerouteError("");
+    try {
+      const r = await api(`/log/${id}/reroute`, { method: "POST", body: JSON.stringify({ dinas_id: rerouteDinas, note: rerouteNote }) });
+      setState(s => ({ ...s, report: r.report, history: r.history, feedbacks: r.feedbacks, pendingRouting: r.pendingRouting }));
+      setTab("history"); setRerouteDinas(""); setRerouteNote("");
+    } catch (e) { setRerouteError(e.message); }
+    finally { setRerouteBusy(false); }
+  }
   const pending = state.status === "ok" && state.report?.resolution_requested_at && state.report.status === "resolved";
+  const pendingReroute = state.pendingRouting;
+  const reroute = pendingReroute ? null : {
+    render: () => <div className="lk-reroute-panel" id="diskusi-perutean">
+      <h3>Diskusi Perutean</h3>
+      <p className="lk-muted">Pilih dinas tujuan yang hendak kamu tunjuk; permintaan akan diteruskan ke admin untuk disetujui.</p>
+      {rerouteError && <Notice error>{rerouteError}</Notice>}
+      <form className="lk-edit-form" onSubmit={submitReroute}>
+        <label htmlFor="reroute-dinas">Dinas tujuan<select id="reroute-dinas" required value={rerouteDinas} onChange={e => setRerouteDinas(e.target.value)}><option value="">Pilih dinas...</option>{dinasList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
+        <label htmlFor="reroute-note">Catatan untuk admin (opsional)<textarea id="reroute-note" rows={3} maxLength={2000} value={rerouteNote} onChange={e => setRerouteNote(e.target.value)} placeholder="Alasan meminta perutean ulang..." /></label>
+        <button className="btn btn--primary" disabled={rerouteBusy || !rerouteDinas}>{rerouteBusy ? "Mengirim..." : "Kirim permintaan perutean"}</button>
+      </form>
+    </div>,
+  };
   return <>
     <div className="lk-detail-topbar">
       <a className="lk-text-link" href="/log">← Kembali ke riwayat</a>
@@ -48,7 +80,11 @@ export function PersonalReport({ id }) {
         <button type="button" className="btn btn--ghost" disabled={Boolean(busy)} onClick={() => respond("reject")}>{busy === "reject" ? "Menolak..." : "Tolak"}</button>
       </div>
     </section>}
-    {state.status === "ok" && <div className="lk-detail-layout lk-detail-layout--wide"><article className="lk-panel"><PrivateReport report={state.report} history={state.history} feedbacks={state.feedbacks} onFeedback={postFeedback} feedbackBusy={feedbackBusy} tab={tab} onTab={setTab} /></article></div>}
+    {pendingReroute && <div className="lk-reroute-panel lk-reroute-panel--pending">
+      <h3>Perutean Ulang — Menunggu Admin</h3>
+      <p>Permintaan peruteanmu ke <strong>{pendingReroute.requested_dinas_name}</strong> sedang menunggu persetujuan admin. Riwayat dan diskusi penanganan tetap berjalan.</p>
+    </div>}
+    {state.status === "ok" && <div className="lk-detail-layout lk-detail-layout--wide"><article className="lk-panel"><PrivateReport report={state.report} history={state.history} feedbacks={state.feedbacks} onFeedback={postFeedback} feedbackBusy={feedbackBusy} tab={tab} onTab={setTab} reroute={reroute} /></article></div>}
   </>;
 }
 
@@ -63,6 +99,13 @@ export default function Report({ user }) {
   const [point, setPoint] = useState(null);
   const [receipt, setReceipt] = useState(null);
   const [retry, setRetry] = useState(0);
+  const [dinasList, setDinasList] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    api("/dinas").then(r => { if (active) setDinasList(r.data); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!logView) return;
@@ -95,6 +138,7 @@ export default function Report({ user }) {
         description_raw: `${data.get("title").trim()}\nLokasi: ${data.get("location").trim()}\n\n${data.get("description").trim()}`,
         image_url: image || null, is_public: data.get("is_public") === "on",
         lat: point.lat, lng: point.lng, address: point.label || null,
+        dinas_id: data.get("dinas_id") || null,
       }) });
       setReceipt(r.report);
       setPoint(null);
@@ -124,6 +168,7 @@ export default function Report({ user }) {
       <div className="report-field"><label className="report-label" htmlFor="report-description">Deskripsi</label><textarea className="report-input" id="report-description" name="description" required minLength={10} maxLength={10000} rows={5} placeholder="Jelaskan kejadian, dampak, dan saran perbaikannya." /></div>
       <div className="report-field"><label className="report-label" htmlFor="report-photo">Foto (opsional, PNG/JPG/WebP, maksimal 5 MB)</label><input className="report-input" id="report-photo" type="file" accept="image/png,image/jpeg,image/webp" onChange={upload} />{uploading && <Notice>Mengunggah foto...</Notice>}{photoError && <Notice error>{photoError}</Notice>}{image && <><img className="report-photo__preview" src={image} alt="Pratinjau foto bukti" /><button type="button" className="lk-inline-button" onClick={() => { setImage(""); document.getElementById("report-photo").value = ""; }}>Hapus foto dari laporan</button></>}</div>
       <div className="report-field"><span className="report-label">Titik lokasi</span><MapView value={point} onChange={setPoint} />{point?.label && <p className="report-map__address">{point.label}</p>}</div>
+      <div className="report-field"><label className="report-label" htmlFor="report-dinas">Pilih dinas (opsional)</label><select className="report-input" id="report-dinas" name="dinas_id" defaultValue=""><option value="">Dirutekan Sistem</option>{dinasList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select><p className="report-field__hint">Kosongkan agar sistem meneruskan laporan ke dinas terkait; memilih dinas akan menunggu persetujuan admin.</p></div>
       <label className="lk-checkbox"><input type="checkbox" name="is_public" /> Saya mengizinkan ringkasan laporan dipublikasikan setelah diperiksa admin. Identitas dan foto tidak ditampilkan di katalog.</label>
       {error && <Notice error>{error}</Notice>}
       <button className="btn btn--primary report-submit" disabled={busy || uploading || !point}>{busy ? "Mengirim..." : "Kirim laporan"}</button>

@@ -51,6 +51,14 @@ services:
       MINIO_SECRET_KEY: laporkuy123
       TILES_URL: /pmtiles/indonesia.pmtiles
       NOMINATIM_URL: ${NOMINATIM_URL:-}
+      JEV_BASE_URL: ${JEV_BASE_URL:-https://openrouter.ai/api/v1}
+      JEV_API_KEY: ${JEV_API_KEY:-}
+      JEV_MODEL: ${JEV_MODEL:-typesafe/jev-1.13}
+      JEV_REVIEW_NOUL: ${JEV_REVIEW_NOUL:-0.55}
+      JEV_DINAS_MIN_TOP: ${JEV_DINAS_MIN_TOP:-0.5}
+      JEV_DINAS_MIN_MAPPED: ${JEV_DINAS_MIN_MAPPED:-0.3}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

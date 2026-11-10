@@ -6,6 +6,7 @@ import { createDemoStore } from "./demo-store.js";
 import { createPostgresStore } from "./postgres-store.js";
 import { saveImage } from "./storage.js";
 import { canManage, publicReport, validateUpdate } from "../shared/reports.js";
+import { enqueueJob } from "./queue.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const tokenOf = request => request.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1] ?? "";
@@ -14,6 +15,15 @@ const visible = r => r.is_public && r.moderation_status === "published";
 
 export function createApi({ demo = Bun.env.DEMO_MODE === "true", store = demo ? createDemoStore() : createPostgresStore() } = {}) {
   const currentUser = request => store.session(tokenOf(request));
+  // # ponytail: state OAuth disimpan di memori (cukup untuk 1 instance).
+  // Pindah ke Redis bila nanti >1 instance.
+  const google = {
+    clientId: Bun.env.GOOGLE_CLIENT_ID ?? "",
+    clientSecret: Bun.env.GOOGLE_CLIENT_SECRET ?? "",
+    enabled: Boolean(Bun.env.GOOGLE_CLIENT_ID && Bun.env.GOOGLE_CLIENT_SECRET),
+  };
+  const googleStates = new Map();
+  const googleRedirect = request => `${new URL(request.url).origin}/api/auth/google/callback`;
   return new Elysia({ prefix: "/api" })
     .use(swagger({ path: "/docs" }))
     .onError(({ code, error, set }) => {
@@ -27,7 +37,7 @@ export function createApi({ demo = Bun.env.DEMO_MODE === "true", store = demo ? 
       { label: "Masyarakat", email: "warga@demo.test", password: "WargaDemo123!" },
       { label: "Admin pemerintah", email: "admin@demo.test", password: "AdminDemo123!" },
       { label: "Petugas dinas PU", email: "petugas@demo.test", password: "PetugasDemo123!" },
-    ] : [] }))
+    ] : [], google_enabled: google.enabled }))
     .post("/auth/register", async ({ body, set }) => {
       const email = String(body?.email ?? "").trim().toLowerCase();
       const password = String(body?.password ?? "");
@@ -59,6 +69,98 @@ export function createApi({ demo = Bun.env.DEMO_MODE === "true", store = demo ? 
       return user ? { user: safeUser(user) } : fail(set, 401, "Silakan masuk terlebih dahulu.");
     })
     .post("/auth/logout", async ({ request }) => { await store.logout(tokenOf(request)); return { ok: true }; })
+    .get("/auth/google", ({ request, set }) => {
+      if (!google.enabled) return fail(set, 400, "Masuk dengan Google belum dikonfigurasi.");
+      const state = randomBytes(24).toString("hex");
+      googleStates.set(state, Date.now() + 10 * 60 * 1000);
+      const params = new URLSearchParams({
+        client_id: google.clientId,
+        redirect_uri: googleRedirect(request),
+        response_type: "code",
+        scope: "openid email profile",
+        state,
+        prompt: "select_account",
+      });
+      return Response.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+    })
+    .get("/auth/google/callback", async ({ request, query, set }) => {
+      if (!google.enabled) return fail(set, 400, "Masuk dengan Google belum dikonfigurasi.");
+      const state = String(query?.state ?? "");
+      if (!state || !googleStates.has(state) || googleStates.get(state) < Date.now()) {
+        return fail(set, 400, "Sesi Google tidak valid atau kedaluwarsa. Coba lagi.");
+      }
+      googleStates.delete(state);
+      const code = String(query?.code ?? "");
+      if (!code) return fail(set, 400, "Google tidak mengembalikan kode otorisasi.");
+      const redirectUri = googleRedirect(request);
+      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: google.clientId,
+          client_secret: google.clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code",
+        }),
+      });
+      const tokens = await tokenRes.json().catch(() => ({}));
+      if (!tokenRes.ok || !tokens.access_token) return fail(set, 400, "Gagal menukar kode Google. Coba lagi.");
+      const infoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: { authorization: `Bearer ${tokens.access_token}` },
+      });
+      const info = await infoRes.json().catch(() => ({}));
+      const email = String(info?.email ?? "").trim().toLowerCase();
+      if (!infoRes.ok || !email || !info?.verified_email) return fail(set, 400, "Email Google tidak terverifikasi.");
+      let user = await store.userByEmail(email);
+      if (!user) {
+        try {
+          user = await store.register(email, hashPassword(randomBytes(24).toString("hex")), String(info?.name ?? "").trim().slice(0, 150) || null);
+        } catch (e) {
+          if (e.code === "23505") user = await store.userByEmail(email);
+          else throw e;
+        }
+      }
+      if (!user || !user.is_active) return fail(set, 403, "Akun dinonaktifkan.");
+      const token = randomBytes(32).toString("hex");
+      await store.login(token, user.id);
+      const payload = Buffer.from(JSON.stringify(safeUser(user))).toString("base64url");
+      return Response.redirect(`/?oauth_token=${token}&oauth_user=${payload}`);
+    })
+    .get("/dinas", async ({ request, set }) => {
+      const user = await currentUser(request);
+      if (!user) return fail(set, 401, "Silakan masuk terlebih dahulu.");
+      return { data: await store.dinas() };
+    })
+    .post("/faq/questions", async ({ request, body, set }) => {
+      const user = await currentUser(request);
+      if (!user) return fail(set, 401, "Silakan masuk untuk bertanya.");
+      const question = String(body?.question ?? "").trim();
+      if (question.length < 10 || question.length > 2000) return fail(set, 400, "Tulis pertanyaan 10–2.000 karakter.");
+      const row = await store.askFaqQuestion(user.id, question);
+      set.status = 201;
+      return { question: row };
+    })
+    .get("/faq/questions/mine", async ({ request, set }) => {
+      const user = await currentUser(request);
+      if (!user) return fail(set, 401, "Silakan masuk terlebih dahulu.");
+      return { data: await store.faqQuestionsByUser(user.id) };
+    })
+    .get("/faq/questions", async ({ request, query, set }) => {
+      const user = await currentUser(request);
+      if (user?.role !== "admin") return fail(set, user ? 403 : 401, "Halaman ini khusus admin.");
+      const status = query?.status === "answered" ? "answered" : query?.status === "open" ? "open" : null;
+      return { data: await store.faqQuestions(status) };
+    })
+    .post("/faq/questions/:id/answer", async ({ request, params, body, set }) => {
+      const user = await currentUser(request);
+      if (user?.role !== "admin") return fail(set, user ? 403 : 401, "Halaman ini khusus admin.");
+      const answer = String(body?.answer ?? "").trim();
+      if (!answer || answer.length > 3000) return fail(set, 400, "Isi jawaban 1–3.000 karakter.");
+      const row = await store.answerFaqQuestion(params.id, user.id, answer);
+      if (!row) return fail(set, 404, "Pertanyaan tidak ditemukan.");
+      return { question: row };
+    })
     .post("/submit-laporan", async ({ request, body, set }) => {
       const user = await currentUser(request);
       if (!user) return fail(set, 401, "Silakan masuk untuk mengirim laporan.");
@@ -73,13 +175,23 @@ export function createApi({ demo = Bun.env.DEMO_MODE === "true", store = demo ? 
       }
       const address = typeof body?.address === "string" && body.address.trim()
         ? body.address.trim() : null;
+      const dinasId = body?.dinas_id ?? null;
+      if (dinasId && !(await store.dinas()).some(d => d.id === dinasId)) return fail(set, 400, "Dinas tidak valid.");
       const report = await store.createReport({
         ticket_number: `LPK-${randomBytes(8).toString("hex").toUpperCase()}`,
         user_id: user.id, description_raw: raw, image_url: image, is_public: body?.is_public === true,
         lat, lng, address,
       });
       set.status = 201;
-      return { report };
+      // Pelapor memilih dinas tujuan langsung -> permintaan perutean untuk admin; bukan via sistem Jev.
+      if (dinasId) {
+        const rr = await store.requestReroute(report.id, user, dinasId, null);
+        if (rr?.error) return fail(set, 409, "Perutean sudah berjalan.");
+      } else if (!demo) {
+        // Fire-and-forget ke queue AI Jev; pelapor tidak menunggu hasil routing.
+        enqueueJob(report.id).catch(e => console.error("queue submit gagal:", e.message));
+      }
+      return { report: await store.get(report.id) };
     })
     .post("/upload-image", async ({ request, set }) => {
       if (!(await currentUser(request))) return fail(set, 401, "Silakan masuk untuk mengunggah foto.");
@@ -106,7 +218,21 @@ export function createApi({ demo = Bun.env.DEMO_MODE === "true", store = demo ? 
       if (!user) return fail(set, 401, "Silakan masuk untuk melihat detail laporan.");
       const row = await store.get(params.id);
       if (!row || row.user_id !== user.id) return fail(set, 404, "Laporan tidak ditemukan pada akunmu.");
-      return { report: row, history: await store.history(row.id), feedbacks: await store.feedbacks(row.id, user.id) };
+      return { report: row, history: await store.history(row.id), feedbacks: await store.feedbacks(row.id, user.id), pendingRouting: await store.pendingRoutingRequest(row.id) };
+    })
+    .post("/log/:id/reroute", async ({ request, params, body, set }) => {
+      const user = await currentUser(request);
+      if (!user) return fail(set, 401, "Silakan masuk terlebih dahulu.");
+      const row = await store.get(params.id);
+      if (!row || row.user_id !== user.id) return fail(set, 404, "Laporan tidak ditemukan pada akunmu.");
+      const dinasId = String(body?.dinas_id ?? "");
+      if (!dinasId || !(await store.dinas()).some(d => d.id === dinasId)) return fail(set, 400, "Pilih dinas tujuan.");
+      const note = String(body?.note ?? "").trim().slice(0, 2000);
+      const out = await store.requestReroute(row.id, user, dinasId, note);
+      if (!out) return fail(set, 404, "Laporan tidak ditemukan.");
+      if (out.error === "already_pending") return fail(set, 409, "Permintaan perutean masih menunggu persetujuan admin.");
+      if (out.error) return fail(set, 400, "Permintaan perutean gagal.");
+      return { report: await store.get(row.id), history: await store.history(row.id), feedbacks: await store.feedbacks(row.id, user.id), pendingRouting: await store.pendingRoutingRequest(row.id) };
     })
     .post("/log/:id/feedbacks", async ({ request, params, body, set }) => {
       const user = await currentUser(request);
@@ -204,7 +330,24 @@ export function createApi({ demo = Bun.env.DEMO_MODE === "true", store = demo ? 
       if (!UUID.test(params.id)) return fail(set,404,"Laporan tidak ditemukan.");
       const row = await store.get(params.id);
       if (!row || !canManage(user,row)) return fail(set,404,"Laporan tidak ditemukan atau bukan kewenangan dinasmu.");
-      return { report: row, history: await store.history(row.id), feedbacks: await store.feedbacks(row.id, user.id) };
+      return { report: row, history: await store.history(row.id), feedbacks: await store.feedbacks(row.id, user.id), pendingRouting: await store.pendingRoutingRequest(row.id) };
+    })
+    .post("/government/reports/:id/reroute-decision", async ({ request, params, body, set }) => {
+      const user = await currentUser(request);
+      if (user?.role !== "admin") return fail(set, 403, "Hanya admin yang dapat memutuskan perutean.");
+      if (!UUID.test(params.id)) return fail(set,404,"Laporan tidak ditemukan.");
+      const decision = body?.decision;
+      if (!["approve", "reject"].includes(decision)) return fail(set, 400, "Keputusan tidak valid.");
+      const pending = await store.pendingRoutingRequest(params.id);
+      if (!pending) return fail(set, 409, "Tidak ada permintaan perutean yang menunggu.");
+      const note = String(body?.note ?? "").trim().slice(0, 2000);
+      const out = await store.decideReroute(params.id, pending.id, user, decision, note);
+      if (!out) return fail(set, 404, "Laporan tidak ditemukan.");
+      if (out.error) return fail(set, 409, "Permintaan perutean sudah diputuskan.");
+      const report = await store.get(params.id);
+      // Penolakan pada laporan baru (belum pernah dirutekan) -> kembali ke jalur sistem Jev.
+      if (!demo && report.status === "submitted") enqueueJob(report.id).catch(e => console.error("queue submit gagal:", e.message));
+      return { report, history: await store.history(params.id), feedbacks: await store.feedbacks(params.id, user.id), pendingRouting: await store.pendingRoutingRequest(params.id) };
     })
     .post("/government/reports/:id/feedbacks", async ({ request, params, body, set }) => {
       const user = await currentUser(request);
@@ -216,6 +359,18 @@ export function createApi({ demo = Bun.env.DEMO_MODE === "true", store = demo ? 
       if (!message || message.length > 2000) return fail(set, 400, "Tulis masukan 1–2.000 karakter.");
       const feedback = await store.addFeedback(row.id, user, message);
       return { feedback, feedbacks: await store.feedbacks(row.id, user.id) };
+    })
+    .post("/government/reports/:id/assign-dinas", async ({ request, params, body, set }) => {
+      const user = await currentUser(request);
+      if (user?.role !== "admin") return fail(set, 403, "Hanya admin yang dapat menetapkan dinas.");
+      if (!UUID.test(params.id)) return fail(set,404,"Laporan tidak ditemukan.");
+      const row = await store.get(params.id);
+      if (!row) return fail(set,404,"Laporan tidak ditemukan.");
+      const dinasId = body?.dinas_id || null;
+      if (dinasId && !(await store.dinas()).some(d => d.id === dinasId)) return fail(set,400,"Dinas tidak valid.");
+      const updated = await store.assignDinas(params.id, dinasId, user.id);
+      if (!updated) return fail(set,404,"Laporan tidak ditemukan.");
+      return { report: await store.get(params.id), history: await store.history(params.id) };
     })
     .patch("/government/reports/:id", async ({ request, params, body, set }) => {
       const user = await currentUser(request);

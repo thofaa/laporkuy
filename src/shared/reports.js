@@ -1,6 +1,7 @@
 export const STATUSES = {
   submitted: "Terkirim",
   needs_review: "Perlu ditinjau",
+  routed: "Dirutekan",
   accepted: "Diterima",
   in_progress: "Sedang ditangani",
   resolved: "Selesai",

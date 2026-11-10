@@ -1,7 +1,22 @@
 import postgres from "postgres";
 
+function decoratePendingRouting(row) {
+  if (!row) return row;
+  const pending = row.routing_request_id
+    ? { id: row.routing_request_id, requested_dinas_id: row.routing_requested_dinas_id,
+        requested_dinas_name: row.requested_dinas_name, requested_by: row.routing_requested_by,
+        previous_status: row.routing_previous_status, note: row.routing_note,
+        created_at: row.routing_requested_at }
+    : null;
+  const { routing_request_id, routing_requested_dinas_id, routing_requested_by,
+    routing_previous_status, routing_note, routing_requested_at, requested_dinas_name, ...rest } = row;
+  return { ...rest, pending_routing: pending };
+}
+
 export function createPostgresStore() {
-  const sql = postgres(process.env.DATABASE_URL ?? "postgres://laporkuy:laporkuy@localhost:5432/laporkuy");
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) throw new Error("DATABASE_URL is required (set it in environment, not in code).");
+  const sql = postgres(databaseUrl);
   return {
     async userByEmail(email) { return (await sql`select * from users where email = ${email}`)[0]; },
     async register(email, password_hash, full_name) {
@@ -22,9 +37,23 @@ export function createPostgresStore() {
         return row;
       });
     },
-    async list() { return sql`select r.*, d.name as dinas_name from reports r left join dinas d on d.id=r.dinas_id order by r.submitted_at desc`; },
-    async get(id) { return (await sql`select r.*,d.name as dinas_name from reports r left join dinas d on d.id=r.dinas_id where r.id=${id}`)[0]; },
-    async ticket(ticket) { return (await sql`select r.*,d.name as dinas_name from reports r left join dinas d on d.id=r.dinas_id where r.ticket_number=${ticket}`)[0]; },
+    async list() {
+      const rows = await sql`select r.*, d.name as dinas_name,
+          rr.id as routing_request_id, rr.requested_dinas_id as routing_requested_dinas_id,
+          rr.requested_by as routing_requested_by, rr.previous_status as routing_previous_status,
+          rr.note as routing_note, rr.created_at as routing_requested_at,
+          rd.name as requested_dinas_name
+        from reports r
+        left join dinas d on d.id=r.dinas_id
+        left join lateral (select id, requested_dinas_id, requested_by, previous_status, note, created_at
+          from routing_requests where report_id=r.id and status='pending'
+          order by created_at desc limit 1) rr on true
+        left join dinas rd on rd.id=rr.requested_dinas_id
+        order by r.submitted_at desc`;
+      return rows.map(decoratePendingRouting);
+    },
+    async get(id) { return decoratePendingRouting((await sql`select r.*,d.name as dinas_name from reports r left join dinas d on d.id=r.dinas_id where r.id=${id}`)[0]); },
+    async ticket(ticket) { return decoratePendingRouting((await sql`select r.*,d.name as dinas_name from reports r left join dinas d on d.id=r.dinas_id where r.ticket_number=${ticket}`)[0]); },
     async history(id) { return sql`select id,from_status,to_status,note,progress_percent,created_at from report_status_history where report_id=${id} order by created_at`; },
     async feedbacks(reportId, userId) {
       return sql`select id,message,sender_name,sender_role,created_at,(sender_id = ${userId}) as mine
@@ -36,6 +65,149 @@ export function createPostgresStore() {
         returning id,message,sender_name,sender_role,created_at,true as mine`)[0];
     },
     async dinas() { return sql`select id,slug,name from dinas where is_active=true order by name`; },
+    async askFaqQuestion(userId, question) {
+      return (await sql`insert into faq_questions (user_id,question) values (${userId},${question}) returning *`)[0];
+    },
+    async faqQuestionsByUser(userId) {
+      return sql`select * from faq_questions where user_id=${userId} order by created_at desc`;
+    },
+    async faqQuestions(status) {
+      return sql`select fq.*, u.full_name as user_name from faq_questions fq
+        join users u on u.id=fq.user_id
+        ${status ? sql`where fq.status=${status}` : sql``}
+        order by fq.created_at desc`;
+    },
+    async answerFaqQuestion(id, adminId, answer) {
+      const [row] = await sql`update faq_questions set answer=${answer},answered_by=${adminId},answered_at=now(),status='answered'
+        where id=${id} returning *`;
+      return row ?? null;
+    },
+    async kategori() { return sql`select id,slug,name from kategori where is_active=true`; },
+    async kategoriDinasMapping() {
+      const rows = await sql`select k.slug as kategori, d.slug as dinas
+        from kategori_dinas kd join kategori k on k.id=kd.kategori_id
+        join dinas d on d.id=kd.dinas_id where k.is_active and d.is_active`;
+      const mapping = {};
+      for (const r of rows) (mapping[r.kategori] ??= []).push(r.dinas);
+      for (const key of Object.keys(mapping)) mapping[key] = [...new Set(mapping[key])];
+      return mapping;
+    },
+    async activeModelConfig() {
+      return (await sql`select * from ai.model_configs where is_active=true order by created_at desc limit 1`)[0];
+    },
+    // Fallback saat AI gagal 2x: tandai perlu ditinjau tanpa hasil klasifikasi.
+    async markNeedsReview(id, note) {
+      return sql.begin(async tx => {
+        const [before] = await tx`select * from reports where id=${id} for update`;
+        if (!before || before.status !== "submitted") return null;
+        await tx`update reports set status='needs_review',updated_at=now() where id=${id}`;
+        await tx`insert into report_status_history (report_id,from_status,to_status,actor_type,note,progress_percent)
+          values (${id},'submitted','needs_review','system',${note},0)`;
+        return true;
+      });
+    },
+    // Penetapan dinas oleh admin lintas status; needs_review yang diberi dinas -> routed.
+    async assignDinas(id, dinasId, adminId) {
+      return sql.begin(async tx => {
+        const [before] = await tx`select * from reports where id=${id} for update`;
+        if (!before) return null;
+        const newStatus = before.status === "needs_review" && dinasId ? "routed" : before.status;
+        const [after] = await tx`update reports set dinas_id=${dinasId},status=${newStatus},updated_at=now() where id=${id} returning *`;
+        await tx`insert into report_status_history (report_id,from_status,to_status,actor_id,actor_type,note,progress_percent)
+          values (${id},${before.status},${newStatus},${adminId},'admin',
+          ${dinasId ? `Admin menetapkan dinas tujuan${before.status === "needs_review" ? "; laporan dirutekan" : ""}.` : "Dinas tujuan dikosongkan oleh admin."},0)`;
+        // Jika ada permintaan perutean yang menunggu, penetapan dinas admin dianggap menyetujuinya.
+        await tx`update routing_requests set status='approved',decided_by=${adminId},decided_at=now()
+          where report_id=${id} and status='pending'`;
+        return after;
+      });
+    },
+    // Permintaan perutean ulang oleh pelapor (Rutekan Balik). Status laporan -> needs_review
+    // agar masuk antrean admin; riwayat + diskusi tetap tercatat.
+    async pendingRoutingRequest(reportId) {
+      return decoratePendingRouting((await sql`select r.*, d2.name as requested_dinas_name,
+          rr.id as routing_request_id, rr.requested_dinas_id as routing_requested_dinas_id,
+          rr.requested_by as routing_requested_by, rr.previous_status as routing_previous_status,
+          rr.note as routing_note, rr.created_at as routing_requested_at
+        from routing_requests rr
+        join reports r on r.id = rr.report_id
+        join dinas d2 on d2.id = rr.requested_dinas_id
+        where rr.report_id=${reportId} and rr.status='pending'
+        order by rr.created_at desc limit 1`)[0])?.pending_routing ?? null;
+    },
+    async requestReroute(reportId, user, dinasId, note) {
+      return sql.begin(async tx => {
+        const [row] = await tx`select * from reports where id=${reportId} for update`;
+        if (!row) return null;
+        const dup = await tx`select 1 from routing_requests where report_id=${reportId} and status='pending' limit 1`;
+        if (dup.length) return { error: "already_pending" };
+        const dinas = (await tx`select name from dinas where id=${dinasId}`)[0];
+        if (!dinas) return { error: "invalid_dinas" };
+        const message = note ? `Permintaan perutean ke ${dinas.name}. ${note}` : `Meminta perutean ke ${dinas.name}.`;
+        await tx`insert into routing_requests (report_id,requested_dinas_id,requested_by,previous_status,note)
+          values (${reportId},${dinasId},${user.id},${row.status},${message})`;
+        await tx`update reports set status='needs_review',updated_at=now() where id=${reportId}`;
+        await tx`insert into report_status_history (report_id,from_status,to_status,actor_id,actor_type,note,progress_percent)
+          values (${reportId},${row.status},'needs_review',${user.id},'user',${message},${row.progress_percent})`;
+        await tx`insert into report_feedbacks (report_id,sender_id,sender_name,sender_role,message)
+          values (${reportId},${user.id},${user.full_name ?? null},'user',${message})`;
+        return { ok: true };
+      });
+    },
+    async decideReroute(reportId, requestId, admin, decision, note) {
+      return sql.begin(async tx => {
+        const [req] = await tx`select * from routing_requests where id=${requestId} and report_id=${reportId} for update`;
+        if (!req || req.status !== "pending") return { error: "no_pending" };
+        const [row] = await tx`select * from reports where id=${reportId} for update`;
+        if (!row) return { error: "not_found" };
+        const dinas = (await tx`select name from dinas where id=${req.requested_dinas_id}`)[0];
+        const dinasName = dinas?.name ?? "dinas tujuan";
+        if (decision === "approve") {
+          await tx`update routing_requests set status='approved',decided_by=${admin.id},decided_at=now() where id=${requestId}`;
+          const [after] = await tx`update reports set status='routed',dinas_id=${req.requested_dinas_id},updated_at=now(),routed_at=now()
+            where id=${reportId} returning *`;
+          const message = note ? `Perutean ke ${dinasName} disetujui admin. ${note}` : `Perutean ke ${dinasName} disetujui admin.`;
+          await tx`insert into report_status_history (report_id,from_status,to_status,actor_id,actor_type,note,progress_percent)
+            values (${reportId},${row.status},'routed',${admin.id},'admin',${message},${row.progress_percent})`;
+          await tx`insert into report_feedbacks (report_id,sender_id,sender_name,sender_role,message)
+            values (${reportId},${admin.id},${admin.full_name ?? null},'admin',${message})`;
+          return { report: after, previousStatus: req.previous_status };
+        }
+        await tx`update routing_requests set status='rejected',decided_by=${admin.id},decided_at=now() where id=${requestId}`;
+        const [after] = await tx`update reports set status=${req.previous_status},updated_at=now()
+          where id=${reportId} returning *`;
+        const message = note ? `Permintaan perutean ke ${dinasName} ditolak admin. ${note}` : `Permintaan perutean ke ${dinasName} ditolak admin.`;
+        await tx`insert into report_status_history (report_id,from_status,to_status,actor_id,actor_type,note,progress_percent)
+          values (${reportId},${row.status},${req.previous_status},${admin.id},'admin',${message},${row.progress_percent})`;
+        await tx`insert into report_feedbacks (report_id,sender_id,sender_name,sender_role,message)
+          values (${reportId},${admin.id},${admin.full_name ?? null},'admin',${message})`;
+        return { report: after, previousStatus: req.previous_status };
+      });
+    },
+    // Hasil AI: update lintasan + simpan classification. Hanya jalan dari status `submitted`.
+    async routeReport(id, input) {
+      return sql.begin(async tx => {
+        const [before] = await tx`select * from reports where id=${id} for update`;
+        if (!before || before.status !== "submitted") return null;
+        const routed = input.status === "routed";
+        const [after] = await tx`update reports set status=${input.status},dinas_id=${input.dinas_id},
+          category_id=${input.category_id},urgency=${input.urgency},description_redacted=${input.description_redacted},
+          updated_at=now(),routed_at=${routed ? new Date() : null} where id=${id} returning *`;
+        await tx`insert into report_status_history (report_id,from_status,to_status,actor_type,note,progress_percent)
+          values (${id},${before.status},${input.status},'system',
+          ${routed ? "Laporan dirutekan otomatis ke dinas terkait." : "Laporan di bawah ambang keyakinan; menunggu tinjauan admin."},0)`;
+        await tx`insert into ai.classifications (report_id,model_config_id,input_redacted,input_sent,output_json,
+          dinas_id,category_id,urgency,confidence,category_confidence,dinas_confidence,urgency_confidence,
+          pii_types,latency_ms,token_usage)
+          values (${id},${input.model_config_id},${input.input_redacted},${input.input_sent},${input.output_json},
+          ${input.dinas_id},${input.category_id},${input.urgency},${input.confidence},
+          ${input.category_confidence},${input.dinas_confidence},${input.urgency_confidence},
+          ${input.pii_types ?? null},${input.latency_ms},${input.token_usage ?? null})`;
+        await tx`insert into audit_logs (actor_type,action,entity_type,entity_id)
+          values ('system',${routed ? "jev_route" : "jev_needs_review"},'report',${id})`;
+        return after;
+      });
+    },
     async update(id, input, actor, expected) {
       return sql.begin(async tx => {
         const [before] = await tx`select * from reports where id=${id} for update`;

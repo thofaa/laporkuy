@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { Notice, PrivateReport, StatusBadge, StatusSelect, Pager, dateText, parseReport, SYSTEM_STATUSES } from "../components/ReportWidgets.jsx";
 import GovernmentCharts from "../components/GovernmentCharts.jsx";
+import FaqAdmin from "../components/FaqAdmin.jsx";
 
 function GovernmentDetail({ id, user, onSaved }) {
   const [result,setResult] = useState(null);
   const [form,setForm] = useState({});
+  const [dinasList,setDinasList] = useState([]);
   const [error,setError] = useState("");
   const [success,setSuccess] = useState("");
   const [busy,setBusy] = useState(false);
@@ -27,6 +29,12 @@ function GovernmentDetail({ id, user, onSaved }) {
     }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
   },[id,retry]);
+  useEffect(() => {
+    if (!admin) return;
+    let active = true;
+    api("/government/dinas").then(r => { if (active) setDinasList(r.data); }).catch(() => {});
+    return () => { active = false; };
+  },[admin,id]);
   const change = (name,value) => setForm(f => ({ ...f,[name]: value }));
   async function save(event) {
     event.preventDefault(); setBusy(true); setError(""); setSuccess("");
@@ -43,6 +51,23 @@ function GovernmentDetail({ id, user, onSaved }) {
       setResult(prev => ({ ...prev, feedbacks: r.feedbacks }));
     } finally { setFeedbackBusy(false); }
   }
+  async function assignDinas(event) {
+    event.preventDefault(); setBusy(true); setError(""); setSuccess("");
+    try {
+      const r = await api(`/government/reports/${id}/assign-dinas`, { method:"POST", body: JSON.stringify({ dinas_id: form.dinas_id || null }) });
+      apply(r); setSuccess("Dinas tujuan diperbarui. Laporan langsung tampil di dashboard dinas terkait."); onSaved();
+    } catch(e) { setError(e.message); }
+    finally { setBusy(false); }
+  }
+  async function decideReroute(decision) {
+    setBusy(decision); setError(""); setSuccess("");
+    try {
+      const r = await api(`/government/reports/${id}/reroute-decision`, { method:"POST", body: JSON.stringify({ decision }) });
+      apply(r); setSuccess(decision === "approve" ? "Perutean disetujui; laporan dirutekan ke dinas tujuan." : "Permintaan perutean ditolak."); onSaved();
+    } catch(e) { setError(e.message); }
+    finally { setBusy(""); }
+  }
+  const pendingRouting = result?.pendingRouting;
   return <><div className="lk-detail-topbar">
     <a className="lk-text-link" href="/pemerintah/daftar">← Kembali ke daftar laporan</a>
   </div>
@@ -56,7 +81,22 @@ function GovernmentDetail({ id, user, onSaved }) {
         <label>Progres (%)<input name="progress_percent" type="number" min="0" max="100" required value={form.progress_percent} onChange={e => change("progress_percent",e.target.value)} /></label>
         <label>Tanggapan untuk pelapor<textarea name="note" rows={5} required maxLength={3000} value={form.note} onChange={e => change("note",e.target.value)} placeholder="Jelaskan tindakan yang sudah dilakukan dan langkah berikutnya." /></label>
         <button className="btn btn--primary" disabled={busy}>{busy ? "Menyimpan..." : "Simpan tanggapan"}</button>
-      </form>} feedbacks={result.feedbacks} onFeedback={postFeedback} feedbackBusy={feedbackBusy} tab={tab} onTab={setTab} />
+        </form>} feedbacks={result.feedbacks} onFeedback={postFeedback} feedbackBusy={feedbackBusy} tab={tab} onTab={setTab} />
+      {admin && <form className="lk-edit-form lk-follow-up" onSubmit={assignDinas}>
+        <h3>Penetapan Dinas Tujuan</h3>
+        {success && <Notice>{success}</Notice>}
+        <label htmlFor="dinas-assign">Dinas tujuan<select id="dinas-assign" value={form.dinas_id} onChange={e => change("dinas_id", e.target.value)}><option value="">Belum ditetapkan</option>{dinasList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
+        <button className="btn btn--primary" disabled={busy}>{busy ? "Menyimpan..." : "Simpan dinas"}</button>
+      </form>}
+      {admin && pendingRouting && <div className="lk-edit-form lk-follow-up lk-reroute-decision">
+        <h3>Perutean Ulang — Persetujuan Admin</h3>
+        <p>Pelapor meminta perutean ke <strong>{pendingRouting.requested_dinas_name}</strong>. Setujui agar laporan langsung dirutekan ke dinas itu, atau tolak agar tetap pada dinas/status sebelumnya.</p>
+        {pendingRouting.note && <p className="lk-muted">{pendingRouting.note}</p>}
+        <div className="lk-actions">
+          <button type="button" className="btn btn--primary" disabled={Boolean(busy)} onClick={() => decideReroute("approve")}>{busy === "approve" ? "Menyetujui..." : "Setujui perutean"}</button>
+          <button type="button" className="btn btn--ghost" disabled={Boolean(busy)} onClick={() => decideReroute("reject")}>{busy === "reject" ? "Menolak..." : "Tolak perutean"}</button>
+        </div>
+      </div>}
     </article></div>}
   </>;
 }
@@ -86,13 +126,14 @@ export default function Government({ id, user, view = "dashboard" }) {
       {review && !admin && <Notice error>Halaman ini khusus admin.</Notice>}
       {view === "dashboard" && <GovernmentCharts />}
       {result && view === "dashboard" && <div className="lk-stats">{[["Total laporan",result.summary.total],["Menunggu tindak lanjut",result.summary.waiting],["Sedang ditangani",result.summary.active],["Selesai",result.summary.resolved]].map(([label,value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>}
+      {admin && view === "dashboard" && <FaqAdmin />}
       {view !== "dashboard" && <>
         {!review && user.role === "pemerintah" && <p className="lk-intro">Daftar ini hanya menampilkan laporan yang ditugaskan kepada dinasmu.</p>}
         <div className="lk-filters"><label>Cari laporan<input type="search" value={query} onChange={e => { setQuery(e.target.value); setPage(1); }} placeholder="Nomor tiket, judul, atau lokasi" /></label>{!review && <label htmlFor="status-filter">Status<StatusSelect value={status} onChange={v => { setStatus(v); setPage(1); }} /></label>}</div>
         {error && <Notice error>{error} <button className="lk-inline-button" onClick={() => setRetry(retry + 1)}>Coba lagi</button></Notice>}
         {!result && !error && <Notice>Memuat laporan...</Notice>}
         {result?.data.length === 0 && <Notice>Belum ada laporan yang sesuai dengan pencarian ini.</Notice>}
-        {result?.data.length > 0 && <><div className="lk-table-wrap"><table className="lk-table"><caption className="visually-hidden">Daftar pengaduan yang dapat ditangani</caption><thead><tr><th>Tiket / tanggal</th><th>Laporan</th><th>Status</th><th>Progres</th><th>Tindakan</th></tr></thead><tbody>{result.data.map(r => <tr key={r.id}><td data-label="Tiket / tanggal"><strong>{r.ticket_number}</strong><small>{dateText(r.submitted_at)}</small></td><td data-label="Laporan"><strong>{parseReport(r.description_raw).title}</strong><small>{r.dinas_name || "Belum ditetapkan dinas"}</small></td><td data-label="Status"><StatusBadge status={r.status} /></td><td data-label="Progres">{r.progress_percent}%</td><td data-label="Tindakan"><a className="btn btn--ghost" href={`/pemerintah/laporan/${r.id}`}>Tinjau</a></td></tr>)}</tbody></table></div><Pager page={page} total={result.total} onPage={setPage} /></>}
+        {result?.data.length > 0 && <><div className="lk-table-wrap"><table className="lk-table"><caption className="visually-hidden">Daftar pengaduan yang dapat ditangani</caption><thead><tr><th>Tiket / tanggal</th><th>Laporan</th><th>Status</th><th>Progres</th><th>Tindakan</th></tr></thead><tbody>{result.data.map(r => <tr key={r.id}><td data-label="Tiket / tanggal"><strong>{r.ticket_number}</strong><small>{dateText(r.submitted_at)}</small></td><td data-label="Laporan"><strong>{parseReport(r.description_raw).title}</strong><small>{r.dinas_name || "Belum ditetapkan dinas"}</small>{r.pending_routing && <p className="lk-pending-badge">Permintaan perutean → {r.pending_routing.requested_dinas_name}</p>}</td><td data-label="Status"><StatusBadge status={r.status} /></td><td data-label="Progres">{r.progress_percent}%</td><td data-label="Tindakan"><a className="btn btn--ghost" href={`/pemerintah/laporan/${r.id}`}>Tinjau</a></td></tr>)}</tbody></table></div><Pager page={page} total={result.total} onPage={setPage} /></>}
       </>}
     </>)}
   </section>;

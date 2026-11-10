@@ -39,8 +39,8 @@ export default function Header() {
 
   const dashboardLabel =
     user?.role === "admin"
-      ? "Dashboard pemerintah"
-      : "Dashboard dinas";
+      ? "Dashboard Pemerintah"
+      : "Dashboard Dinas";
 
   return (
     <>
@@ -89,7 +89,7 @@ export default function Header() {
                     {isStaff
                       ? user.role === "admin"
                         ? "Dashboard"
-                        : "Dashboard dinas"
+                        : "Dashboard Dinas"
                       : "Dashboard"}
                   </a>
                     
