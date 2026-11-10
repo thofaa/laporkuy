@@ -1,6 +1,9 @@
-# Laporkuy
+#
+<p align="center">
+  <img src="laporkuy-logo.svg" alt="Logo Laporkuy" width="260" />
+</p>
 
-Platform pelaporan layanan dan program publik. Warga cukup mengisi satu laporan tanpa ribet-ribet pilih dinas; AI akan bantu decision routing yang tepat untuk laporan yang dikirimkan pengguna; instansi menindaklanjuti dengan status dan progres yang jelas; dan admin pemerintah monitor agar routing benar-benar tepat sesuai dinas yang diinginkan pengguna.
+Laporkuy, platform pelaporan layanan dan program publik. Warga cukup mengisi satu laporan tanpa ribet-ribet pilih dinas; AI akan bantu decision routing yang tepat untuk laporan yang dikirimkan pengguna; instansi menindaklanjuti dengan status dan progres yang jelas; dan admin pemerintah monitor agar routing benar-benar tepat sesuai dinas yang diinginkan pengguna.
 
 ## Tech Stack
 
